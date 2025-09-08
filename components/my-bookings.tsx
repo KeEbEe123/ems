@@ -1,107 +1,144 @@
-import React from "react";
+// app/components/tickets/MyBookings.tsx
+"use client";
+
+import React, { useMemo, useState } from "react";
 import Image from "next/image";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { TicketCard } from "./tickets/TicketCard"; // ← your card with the "View Ticket" button
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 
-const TicketCard = ({
-  title,
-  date,
-  time,
-  seat,
-}: {
-  title: string;
-  date: string;
-  time: string;
-  seat: string;
-}) => {
-  return (
-    <div className="relative w-full h-64">
-      {/* Ticket SVG as background */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center">
-        <Image
-          src="/elements/ticket.svg"
-          alt="Ticket"
-          fill
-          className="drop-shadow-lg object-contain"
-        />
-      </div>
-
-      {/* Content overlay */}
-      <div className="absolute inset-0 z-10 flex flex-col justify-between px-28 md:px-32 py-12 md:py-8">
-        <div>
-          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-          <p className="text-sm text-gray-700 mt-2">Date: {date}</p>
-        </div>
-        <div className="flex justify-between text-sm text-gray-800 mt-auto">
-          <span>Time: {time}</span>
-          <span>Seat: {seat}</span>
-        </div>
-      </div>
-    </div>
-  );
+type TicketItem = {
+  id: number;
+  tier: string;
+  ticketNo: string;
+  dateRange: string;
+  timeLabel: string;
 };
 
-function MyBookings() {
-  // Sample data for the tickets
-  const tickets = [
-    {
-      id: 1,
-      title: "Concert Night",
-      date: "2023-12-15",
-      time: "19:00",
-      seat: "A12",
-    },
-    {
-      id: 2,
-      title: "Tech Conference",
-      date: "2023-12-20",
-      time: "09:00",
-      seat: "B7",
-    },
-    {
-      id: 3,
-      title: "Art Exhibition",
-      date: "2023-12-22",
-      time: "14:00",
-      seat: "C3",
-    },
-    {
-      id: 4,
-      title: "Theater Play",
-      date: "2024-01-05",
-      time: "18:30",
-      seat: "D9",
-    },
-    {
-      id: 5,
-      title: "Music Festival",
-      date: "2024-01-12",
-      time: "16:00",
-      seat: "E15",
-    },
-    {
-      id: 6,
-      title: "Stand-up Comedy",
-      date: "2024-01-18",
-      time: "20:00",
-      seat: "F22",
-    },
-  ];
+export default function MyBookings() {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<TicketItem | null>(null);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  // Sample data
+  const tickets: TicketItem[] = useMemo(
+    () => [
+      {
+        id: 1,
+        tier: "GOLD",
+        ticketNo: "696969",
+        dateRange: "1 - 3 August",
+        timeLabel: "From 10 AM",
+      },
+      {
+        id: 2,
+        tier: "GOLD",
+        ticketNo: "884211",
+        dateRange: "1 - 3 August",
+        timeLabel: "From 10 AM",
+      },
+      {
+        id: 3,
+        tier: "GOLD",
+        ticketNo: "550021",
+        dateRange: "1 - 3 August",
+        timeLabel: "From 10 AM",
+      },
+      {
+        id: 4,
+        tier: "GOLD",
+        ticketNo: "771145",
+        dateRange: "1 - 3 August",
+        timeLabel: "From 10 AM",
+      },
+      {
+        id: 5,
+        tier: "GOLD",
+        ticketNo: "220045",
+        dateRange: "1 - 3 August",
+        timeLabel: "From 10 AM",
+      },
+      {
+        id: 6,
+        tier: "GOLD",
+        ticketNo: "915502",
+        dateRange: "1 - 3 August",
+        timeLabel: "From 10 AM",
+      },
+    ],
+    []
+  );
+
+  const handleView = (t: TicketItem) => {
+    setSelected(t);
+    setOpen(true);
+  };
+
+  const TicketDesign = () => {
+    if (!selected) return null;
+    return (
+      <div className="w-full flex justify-center">
+        {/* Wrapper that matches the uploaded ticket aspect/size and isolates clicks */}
+        <div className="relative w-[620px] max-w-[92vw]">
+          {/* Ticket SVG (from /public/elements/ticket.svg) */}
+          <Image
+            src="/elements/ticket.svg"
+            alt="Ticket"
+            width={1200}
+            height={600}
+            priority
+            className="w-full h-auto block"
+          />
+
+          {/* Overlay: ID text at right-center (like your screenshot) */}
+          <div className="pointer-events-none absolute inset-0">
+            <p className="absolute right-[9%] top-1/2 -translate-y-1/2 text-[18px] tracking-wide text-black">
+              ID: {selected.ticketNo}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h2 className="text-2xl font-bold mb-8 text-center">My Bookings</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tickets.map((ticket) => (
-          <TicketCard
-            key={ticket.id}
-            title={ticket.title}
-            date={ticket.date}
-            time={ticket.time}
-            seat={ticket.seat}
-          />
-        ))}
+    <>
+      <div className="container mx-auto px-4 py-8">
+        <h2 className="text-2xl font-bold mb-8 text-center">My Bookings</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {tickets.map((t) => (
+            <TicketCard
+              key={t.id}
+              tier={t.tier as any}
+              ticketNo={t.ticketNo}
+              dateRange={t.dateRange}
+              timeLabel={t.timeLabel}
+              // IMPORTANT: clicking the pill opens the modal/drawer
+              onView={() => handleView(t)}
+            />
+          ))}
+        </div>
       </div>
-    </div>
+
+      {/* Desktop: Dialog; Mobile: Drawer */}
+      {isDesktop ? (
+        <Dialog open={open} onOpenChange={setOpen}>
+          {/* Transparent chrome, ticket only */}
+          <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-[680px]">
+            <TicketDesign />
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={open} onOpenChange={setOpen}>
+          <DrawerContent className="border-none">
+            <div className="py-6">
+              <TicketDesign />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
+    </>
   );
 }
-
-export default MyBookings;

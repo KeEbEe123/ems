@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import { UserRoundPen, TicketCheck, Trophy, LogOut, Home } from "lucide-react";
-import UserProfile from "@/components/user-profile";
+import { UserProfile } from "@/components/user-profile";
 import MyBookings from "@/components/my-bookings";
 import Certificates from "@/components/certificates";
 import { motion } from "motion/react";
@@ -27,7 +27,7 @@ const BackgroundBlobs = () => (
       className="
         absolute -bottom-64 right-[-10%] w-[70vmax] h-[40vmax]
         rounded-t-full
-        bg-[radial-gradient(ellipse_at_bottom,rgba(160,60,220,0.6),transparent_70%)]
+        dark:bg-[radial-gradient(ellipse_at_bottom,rgba(160,60,220,0.4),transparent_70%)] bg-[radial-gradient(ellipse_at_bottom,rgba(244,164,191,1),transparent_70%)]
         z-0 pointer-events-none
       "
     />
@@ -112,9 +112,9 @@ export default function Profile() {
   return (
     <div
       className="
-        relative flex min-h-screen md:h-dvh w-full
+        relative flex min-h-screen w-full
         overflow-hidden
-        dark:bg-[#0A0B1E] bg-white
+        dark:bg-[#0A0B1E] bg-[#FAF9F6]
       "
     >
       {/* Blob gradients behind everything */}
@@ -123,7 +123,7 @@ export default function Profile() {
       {/* Actual UI above blobs */}
       <div className="relative z-10 flex flex-col md:flex-row w-full items-stretch">
         <Sidebar open={open} setOpen={setOpen}>
-          <SidebarBody className="justify-between gap-10 dark:bg-neutral-900/90 dark:border-r dark:border-neutral-800 bg-white/90 backdrop-blur">
+          <SidebarBody className="justify-between gap-10 dark:bg-neutral-900/90 dark:border-r dark:border-neutral-800 bg-[#FAF9F6]/90 backdrop-blur">
             <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
               <Logo />
               <div className="mt-8 flex flex-col gap-2">

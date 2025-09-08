@@ -1,42 +1,53 @@
+"use client"
+
 import * as React from "react"
+import * as AvatarPrimitive from "@radix-ui/react-avatar"
+
 import { cn } from "@/lib/utils"
 
-interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
-  src?: string
-  alt?: string
-  fallback?: string
-  size?: number
-}
-
-function Avatar({ src, alt = "", fallback, size = 36, className, ...props }: AvatarProps) {
-  const [imgError, setImgError] = React.useState(false)
-  const dimension = { width: size, height: size }
-
+function Avatar({
+  className,
+  ...props
+}: React.ComponentProps<typeof AvatarPrimitive.Root>) {
   return (
-    <div
+    <AvatarPrimitive.Root
       data-slot="avatar"
       className={cn(
-        "relative inline-flex shrink-0 overflow-hidden rounded-full bg-muted text-muted-foreground select-none border border-white/10",
+        "relative flex size-8 shrink-0 overflow-hidden rounded-full",
         className
       )}
-      style={dimension}
       {...props}
-    >
-      {src && !imgError ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt={alt}
-          onError={() => setImgError(true)}
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <span className="flex h-full w-full items-center justify-center text-sm font-medium">
-          {fallback?.slice(0, 2).toUpperCase() || "?"}
-        </span>
-      )}
-    </div>
+    />
   )
 }
 
-export { Avatar }
+function AvatarImage({
+  className,
+  ...props
+}: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+  return (
+    <AvatarPrimitive.Image
+      data-slot="avatar-image"
+      className={cn("aspect-square size-full", className)}
+      {...props}
+    />
+  )
+}
+
+function AvatarFallback({
+  className,
+  ...props
+}: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
+  return (
+    <AvatarPrimitive.Fallback
+      data-slot="avatar-fallback"
+      className={cn(
+        "bg-muted flex size-full items-center justify-center rounded-full",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Avatar, AvatarImage, AvatarFallback }
