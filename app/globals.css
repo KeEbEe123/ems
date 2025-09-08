@@ -112,6 +112,22 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@layer utilities {
+  .animate-spin-ease {
+    animation: spin-ease 200ms ease-in-out;
+  }
+}
+@theme {
+  --animate-spinEase: spin-ease 700ms;
+  @keyframes spin-ease {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(540deg);
+    }
+  }
+}
 @layer base {
   * {
     @apply border-border outline-ring/50;
