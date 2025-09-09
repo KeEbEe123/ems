@@ -132,8 +132,8 @@ export default function MyBookings() {
         </Dialog>
       ) : (
         <Drawer open={open} onOpenChange={setOpen}>
-          <DrawerContent className="bg-transparent border-none shadow-none h-[90vh]">
-            <div className="flex items-center justify-center h-full -rotate-90 origin-center transform scale-120">
+          <DrawerContent className="border-none">
+            <div className="py-6">
               <TicketDesign />
             </div>
           </DrawerContent>
