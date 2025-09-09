@@ -1,155 +1,196 @@
 "use client";
+
 import { useState } from "react";
-import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
-import {
-  IconMenu2,
-  IconChartBar,
-  IconUsers,
-  IconClipboard,
-  IconCalendar,
-} from "@tabler/icons-react";
-import { motion } from "motion/react";
-import { EventInfoPage } from "@/components/event-info-page";
-import { AfterEventPage } from "@/components/after-event-page";
-import { ParticipantsPage } from "@/components/participants-page";
-import { AnalyticsPage } from "@/components/analytics-page";
-import React from "react";
-import { Separator } from "@/components/ui/separator";
-import { Home, LogOut } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Eye, Download } from "lucide-react";
+import Image from "next/image";
 
-export default function EventDashboard() {
-  const [currentPage, setCurrentPage] = useState("event-info");
-  const [open, setOpen] = useState(false);
+// Sample event data
+const sampleEvents = {
+  iic: [
+    {
+      id: 1,
+      title: "Innovation Summit 2024",
+      imageUrl: "/innovation-summit-conference-hall.jpg",
+      date: "15-17 March",
+    },
+    {
+      id: 2,
+      title: "Tech Startup Showcase",
+      imageUrl: "/startup-pitch-presentation-stage.jpg",
+      date: "22-24 March",
+    },
+    {
+      id: 3,
+      title: "Digital Transformation Workshop",
+      imageUrl: "/digital-workshop-technology.jpg",
+      date: "5-7 April",
+    },
+  ],
+  current: [
+    {
+      id: 4,
+      title: "Equinox Conference",
+      imageUrl: "/modern-conference-equinox-event.jpg",
+      date: "1-3 August",
+    },
+    {
+      id: 5,
+      title: "AI & Machine Learning Summit",
+      imageUrl: "/ai-machine-learning-conference.png",
+      date: "10-12 August",
+    },
+  ],
+  past: [
+    {
+      id: 6,
+      title: "Web Development Bootcamp",
+      imageUrl: "/web-dev-bootcamp.png",
+      date: "15-20 July",
+    },
+    {
+      id: 7,
+      title: "Blockchain Symposium",
+      imageUrl: "/blockchain-cryptocurrency-symposium.jpg",
+      date: "1-3 July",
+    },
+    {
+      id: 8,
+      title: "UX Design Workshop",
+      imageUrl: "/ux-design-workshop-creative.jpg",
+      date: "20-22 June",
+    },
+  ],
+};
 
-  const links = [
-    {
-      label: "Menu",
-      href: "#",
-      icon: (
-        <IconMenu2 className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
-      ),
-      id: "menu",
-    },
-    {
-      label: "Analytics",
-      href: "#",
-      icon: (
-        <IconChartBar className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
-      ),
-      id: "analytics",
-    },
-    {
-      label: "Participants",
-      href: "#",
-      icon: (
-        <IconUsers className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
-      ),
-      id: "participants",
-    },
-    {
-      label: "Event Info",
-      href: "#",
-      icon: (
-        <IconClipboard className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
-      ),
-      id: "event-info",
-    },
-    {
-      label: "After Event",
-      href: "#",
-      icon: (
-        <IconCalendar className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
-      ),
-      id: "after-event",
-    },
-    {
-      label: "Logout",
-      href: "#",
-      icon: (
-        <LogOut className="h-5 w-5 shrink-0 dark:text-red-400 text-red-400" />
-      ),
-      id: "logout",
-    },
-    {
-      label: "Home",
-      href: "#",
-      icon: (
-        <Home className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
-      ),
-      id: "home",
-    },
-  ];
+export default function EventsPage() {
+  const [activeTab, setActiveTab] = useState("iic");
 
-  const handleLinkClick = (id: string) => {
-    if (id !== "menu") {
-      setCurrentPage(id);
-    }
-  };
+  const AddEventCard = () => (
+    <div className="group relative overflow-hidden border border-white/20 bg-neutral-900/50 hover:bg-neutral-800/50 transition-colors cursor-pointer">
+      <div className="relative h-40 bg-neutral-900/80 flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-neutral-700 flex items-center justify-center">
+          <Plus className="w-8 h-8 text-neutral-300" />
+        </div>
+      </div>
+      <div className="flex items-center justify-center bg-[#D9D9D9] px-5 py-4">
+        <span className="text-xl font-medium tracking-tight text-black">
+          Add New Event
+        </span>
+      </div>
+    </div>
+  );
 
-  const renderCurrentPage = () => {
-    switch (currentPage) {
-      case "event-info":
-        return <EventInfoPage />;
-      case "after-event":
-        return <AfterEventPage />;
-      case "participants":
-        return <ParticipantsPage />;
-      case "analytics":
-        return <AnalyticsPage />;
-      default:
-        return <EventInfoPage />;
-    }
-  };
+  const EventCard = ({
+    title,
+    imageUrl,
+  }: {
+    title: string;
+    imageUrl: string;
+  }) => (
+    <div className="group relative overflow-hidden border border-white/80 bg-black">
+      {/* Media (dark area) */}
+      <div className="relative h-40 bg-neutral-900">
+        <Image
+          src={imageUrl || "/placeholder.svg"}
+          alt={title}
+          fill
+          className="object-cover opacity-80 group-hover:opacity-90 transition-opacity"
+          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+        />
+      </div>
+
+      {/* Footer bar */}
+      <div className="flex items-center justify-between bg-[#D9D9D9] px-5 py-4">
+        <h3 className="text-2xl font-medium tracking-tight text-black">
+          {title}
+        </h3>
+        <div className="flex items-center gap-6">
+          <button
+            aria-label="View"
+            className="text-black hover:scale-105 transition-transform"
+          >
+            <Eye className="w-6 h-6" />
+          </button>
+          <button
+            aria-label="Download"
+            className="text-black hover:scale-105 transition-transform"
+          >
+            <Download className="w-6 h-6" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="flex min-h-screen w-full bg-neutral-900">
-      <div className="sticky top-0 h-screen">
-        <Sidebar open={open} setOpen={setOpen}>
-          <SidebarBody className="justify-between gap-10 dark:bg-neutral-900 dark:border-r dark:border-neutral-800 bg-white h-full">
-            <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
-              <Logo />
-              <div className="mt-8 flex flex-col gap-2">
-                {links.map((link) => (
-                  <React.Fragment key={link.id}>
-                    <div
-                      onClick={() => handleLinkClick(link.id)}
-                      className="cursor-pointer"
-                    >
-                      <SidebarLink link={link} />
-                    </div>
-                    {link.id === "after-event" && (
-                      <Separator className="my-4" />
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
+    <div className="min-h-screen bg-neutral-900 text-white">
+      <div className="container mx-auto px-6 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-white">Your Events</h1>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-neutral-800 border border-neutral-700">
+            <TabsTrigger
+              value="iic"
+              className="data-[state=active]:bg-neutral-700 data-[state=active]:text-white text-neutral-300"
+            >
+              IIC Events
+            </TabsTrigger>
+            <TabsTrigger
+              value="current"
+              className="data-[state=active]:bg-neutral-700 data-[state=active]:text-white text-neutral-300"
+            >
+              Current
+            </TabsTrigger>
+            <TabsTrigger
+              value="past"
+              className="data-[state=active]:bg-neutral-700 data-[state=active]:text-white text-neutral-300"
+            >
+              Past
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="iic" className="mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <AddEventCard />
+              {sampleEvents.iic.map((event) => (
+                <EventCard
+                  key={event.id}
+                  title={event.title}
+                  imageUrl={event.imageUrl}
+                />
+              ))}
             </div>
-            <div className="flex flex-col items-start align-middle gap-2">
-              <div className="-ml-1">
-                <ThemeToggle />
-              </div>
-              <div className="h-8 w-8 rounded-full dark:bg-white bg-neutral-600"></div>
+          </TabsContent>
+
+          <TabsContent value="current" className="mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <AddEventCard />
+              {sampleEvents.current.map((event) => (
+                <EventCard
+                  key={event.id}
+                  title={event.title}
+                  imageUrl={event.imageUrl}
+                />
+              ))}
             </div>
-          </SidebarBody>
-        </Sidebar>
+          </TabsContent>
+
+          <TabsContent value="past" className="mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sampleEvents.past.map((event) => (
+                <EventCard
+                  key={event.id}
+                  title={event.title}
+                  imageUrl={event.imageUrl}
+                />
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
-      <div className="flex-1 bg-neutral-900">{renderCurrentPage()}</div>
     </div>
   );
 }
-
-export const Logo = () => {
-  return (
-    <div className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal">
-      <div className="h-6 w-6 shrink-0 rounded dark:bg-white bg-neutral-600" />
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="font-medium whitespace-pre dark:text-white text-neutral-600"
-      >
-        Club
-      </motion.span>
-    </div>
-  );
-};

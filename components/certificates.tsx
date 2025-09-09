@@ -10,7 +10,7 @@ interface CertificateCardProps {
   location: string;
 }
 
-const CertificateCard: React.FC<CertificateCardProps> = ({
+export const CertificateCard: React.FC<CertificateCardProps> = ({
   title,
   imageUrl,
 }) => {
