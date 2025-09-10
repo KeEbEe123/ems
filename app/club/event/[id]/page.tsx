@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import {
   IconMenu2,
@@ -17,10 +18,57 @@ import React from "react";
 import { Separator } from "@/components/ui/separator";
 import { Home, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { supabase } from "@/lib/supabase";
+
+interface Event {
+  id: string;
+  name: string;
+  start_datetime: string;
+  end_datetime: string;
+  event_type: string;
+  status: string;
+  venue: string;
+  city: string;
+  country: string;
+  additional_details: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function EventDashboard() {
+  const params = useParams();
+  const eventId = params.id as string;
   const [currentPage, setCurrentPage] = useState("event-info");
   const [open, setOpen] = useState(false);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (eventId) {
+      fetchEvent();
+    }
+  }, [eventId]);
+
+  const fetchEvent = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", eventId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching event:", error);
+        return;
+      }
+
+      setEvent(data);
+    } catch (error) {
+      console.error("Error fetching event:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const links = [
     {
@@ -88,17 +136,33 @@ export default function EventDashboard() {
   };
 
   const renderCurrentPage = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-neutral-400">Loading event...</div>
+        </div>
+      );
+    }
+
+    if (!event) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-red-400">Event not found</div>
+        </div>
+      );
+    }
+
     switch (currentPage) {
       case "event-info":
-        return <EventInfoPage />;
+        return <EventInfoPage event={event} onEventUpdate={fetchEvent} />;
       case "after-event":
-        return <AfterEventPage />;
+        return <AfterEventPage event={event} />;
       case "participants":
-        return <ParticipantsPage />;
+        return <ParticipantsPage event={event} />;
       case "analytics":
-        return <AnalyticsPage />;
+        return <AnalyticsPage event={event} />;
       default:
-        return <EventInfoPage />;
+        return <EventInfoPage event={event} onEventUpdate={fetchEvent} />;
     }
   };
 

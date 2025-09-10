@@ -126,7 +126,10 @@ export default function MyBookings() {
       {isDesktop ? (
         <Dialog open={open} onOpenChange={setOpen}>
           {/* Transparent chrome, ticket only */}
-          <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-[680px]">
+          <DialogContent
+            className="p-0 bg-transparent border-none shadow-none max-w-[680px]"
+            showCloseButton={false}
+          >
             <TicketDesign />
           </DialogContent>
         </Dialog>

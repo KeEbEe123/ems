@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,25 @@ import {
 
 type TabType = "attendees" | "waitlist";
 
+interface Event {
+  id: string;
+  name: string;
+  start_datetime: string;
+  end_datetime: string;
+  event_type: string;
+  status: string;
+  venue: string;
+  city: string;
+  country: string;
+  additional_details: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ParticipantsPageProps {
+  event: Event;
+}
+
 interface Participant {
   id: string;
   name: string;
@@ -32,90 +52,110 @@ interface Participant {
   registeredAt: string;
 }
 
-export function ParticipantsPage() {
+export function ParticipantsPage({ event }: ParticipantsPageProps) {
   const [activeTab, setActiveTab] = useState<TabType>("attendees");
+  const [attendees, setAttendees] = useState<Participant[]>([]);
+  const [waitlist, setWaitlist] = useState<Participant[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [attendees] = useState<Participant[]>([
-    {
-      id: "1",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@email.com",
-      avatar: "/professional-woman.png",
-      passType: "vip",
-      registeredAt: "2024-01-15",
-    },
-    {
-      id: "2",
-      name: "Michael Chen",
-      email: "michael.chen@email.com",
-      avatar: "/professional-man.png",
-      passType: "general",
-      registeredAt: "2024-01-14",
-    },
-    {
-      id: "3",
-      name: "Emily Rodriguez",
-      email: "emily.rodriguez@email.com",
-      avatar: "/business-woman.png",
-      passType: "premium",
-      registeredAt: "2024-01-13",
-    },
-    {
-      id: "4",
-      name: "David Kim",
-      email: "david.kim@email.com",
-      avatar: "/casual-man.png",
-      passType: "general",
-      registeredAt: "2024-01-12",
-    },
-  ]);
+  // Load participants from Supabase
+  useEffect(() => {
+    if (event) {
+      loadParticipants();
+    }
+  }, [event]);
 
-  const [waitlist, setWaitlist] = useState<Participant[]>([
-    {
-      id: "5",
-      name: "Jessica Brown",
-      email: "jessica.brown@email.com",
-      avatar: "/woman-young.jpg",
-      passType: "vip",
-      registeredAt: "2024-01-16",
-    },
-    {
-      id: "6",
-      name: "Alex Thompson",
-      email: "alex.thompson@email.com",
-      avatar: "/professional-person.png",
-      passType: "general",
-      registeredAt: "2024-01-17",
-    },
-    {
-      id: "7",
-      name: "Maria Garcia",
-      email: "maria.garcia@email.com",
-      avatar: "/woman-smile.jpg",
-      passType: "premium",
-      registeredAt: "2024-01-18",
-    },
-  ]);
+  const loadParticipants = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("event_participants")
+        .select("*")
+        .eq("event_id", event.id)
+        .order("registration_date", { ascending: false });
+
+      if (error) {
+        console.error("Error loading participants:", error);
+        return;
+      }
+
+      const participants =
+        data?.map((participant) => ({
+          id: participant.id,
+          name: participant.name,
+          email: participant.email,
+          avatar: "/default-avatar.png", // Default avatar
+          passType: participant.pass_type,
+          registeredAt: new Date(
+            participant.registration_date
+          ).toLocaleDateString(),
+        })) || [];
+
+      // Separate attendees and waitlist
+      const attendeesList = participants.filter(
+        (p) => p.passType !== "waitlist"
+      );
+      const waitlistList = participants.filter(
+        (p) => p.passType === "waitlist"
+      );
+
+      setAttendees(attendeesList);
+      setWaitlist(waitlistList);
+    } catch (error) {
+      console.error("Error loading participants:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const tabs = [
     { id: "attendees", label: "Attendees" },
     { id: "waitlist", label: "Waitlist" },
   ];
 
-  const handleApprove = (participantId: string) => {
-    const participant = waitlist.find((p) => p.id === participantId);
-    if (participant) {
-      setWaitlist(waitlist.filter((p) => p.id !== participantId));
-      // In a real app, this would move to attendees
-      console.log("[v0] Approved participant:", participant.name);
+  const handleApprove = async (participantId: string) => {
+    try {
+      const { error } = await supabase
+        .from("event_participants")
+        .update({
+          registration_status: "approved",
+          pass_type: "general", // Default to general when approved
+        })
+        .eq("id", participantId);
+
+      if (error) {
+        console.error("Error approving participant:", error);
+        alert("Error approving participant. Please try again.");
+        return;
+      }
+
+      // Reload participants to reflect changes
+      loadParticipants();
+      alert("Participant approved successfully!");
+    } catch (error) {
+      console.error("Error approving participant:", error);
+      alert("Error approving participant. Please try again.");
     }
   };
 
-  const handleReject = (participantId: string) => {
-    const participant = waitlist.find((p) => p.id === participantId);
-    if (participant) {
-      setWaitlist(waitlist.filter((p) => p.id !== participantId));
-      console.log("[v0] Rejected participant:", participant.name);
+  const handleReject = async (participantId: string) => {
+    try {
+      const { error } = await supabase
+        .from("event_participants")
+        .update({ registration_status: "rejected" })
+        .eq("id", participantId);
+
+      if (error) {
+        console.error("Error rejecting participant:", error);
+        alert("Error rejecting participant. Please try again.");
+        return;
+      }
+
+      // Reload participants to reflect changes
+      loadParticipants();
+      alert("Participant rejected successfully!");
+    } catch (error) {
+      console.error("Error rejecting participant:", error);
+      alert("Error rejecting participant. Please try again.");
     }
   };
 
@@ -132,11 +172,21 @@ export function ParticipantsPage() {
     return styles[passType as keyof typeof styles] || styles.general;
   };
 
+  if (isLoading) {
+    return (
+      <div className="p-6 bg-black min-h-screen">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-neutral-400">Loading participants...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 bg-black min-h-screen">
       <div className="mb-6">
         <h1 className="text-white text-lg font-medium mb-4">
-          Club - Event Dashboard - Participants Page
+          Club - Event Dashboard - {event?.name || "Participants Page"}
         </h1>
         <div className="flex gap-1">
           {tabs.map((tab) => (

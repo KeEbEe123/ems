@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Eye, Download } from "lucide-react";
+import { Plus, Eye, Download, Settings, Share2, Link } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 // Sample event data
 const sampleEvents = {
@@ -63,11 +65,61 @@ const sampleEvents = {
   ],
 };
 
+interface Event {
+  id: string;
+  name: string;
+  start_datetime: string;
+  end_datetime: string;
+  event_type: string;
+  status: string;
+  created_at: string;
+}
+
 export default function EventsPage() {
   const [activeTab, setActiveTab] = useState("iic");
+  const [currentEvents, setCurrentEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  // Refresh events when the page comes into focus (e.g., after creating an event)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchEvents();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching events:", error);
+        return;
+      }
+
+      setCurrentEvents(data || []);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const AddEventCard = () => (
-    <div className="group relative overflow-hidden border border-white/20 bg-neutral-900/50 hover:bg-neutral-800/50 transition-colors cursor-pointer">
+    <div
+      className="group relative overflow-hidden border border-white/20 bg-neutral-900/50 hover:bg-neutral-800/50 transition-colors cursor-pointer"
+      onClick={() => router.push("/club/event/create")}
+    >
       <div className="relative h-40 bg-neutral-900/80 flex items-center justify-center">
         <div className="w-16 h-16 rounded-full bg-neutral-700 flex items-center justify-center">
           <Plus className="w-8 h-8 text-neutral-300" />
@@ -107,21 +159,89 @@ export default function EventsPage() {
         </h3>
         <div className="flex items-center gap-6">
           <button
-            aria-label="View"
+            aria-label="Link"
             className="text-black hover:scale-105 transition-transform"
           >
-            <Eye className="w-6 h-6" />
+            <Link className="w-6 h-6" />
           </button>
           <button
-            aria-label="Download"
+            aria-label="Share"
             className="text-black hover:scale-105 transition-transform"
           >
-            <Download className="w-6 h-6" />
+            <Share2 className="w-6 h-6" />
+          </button>
+          <button
+            aria-label="Settings"
+            className="text-black hover:scale-105 transition-transform"
+          >
+            <Settings className="w-6 h-6" />
           </button>
         </div>
       </div>
     </div>
   );
+
+  const SupabaseEventCard = ({ event }: { event: Event }) => {
+    const formatDate = (dateString: string) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    };
+
+    return (
+      <div className="group relative overflow-hidden border border-white/80 bg-black">
+        {/* Media (dark area) */}
+        <div className="relative h-40 bg-neutral-900 flex items-center justify-center">
+          <div className="text-neutral-400 text-sm">
+            {event.event_type === "paid" ? "💰 Paid Event" : "🆓 Free Event"}
+          </div>
+        </div>
+
+        {/* Footer bar */}
+        <div className="flex items-center justify-between bg-[#D9D9D9] px-5 py-4">
+          <div>
+            <h3 className="text-2xl font-medium tracking-tight text-black">
+              {event.name}
+            </h3>
+            <p className="text-sm text-neutral-600 mt-1">
+              {formatDate(event.start_datetime)} -{" "}
+              {formatDate(event.end_datetime)}
+            </p>
+            <p className="text-xs text-neutral-500 mt-1">
+              Status: {event.status}
+            </p>
+          </div>
+          <div className="flex items-center gap-6">
+            <button
+              aria-label="Link"
+              className="text-black hover:scale-105 transition-transform"
+            >
+              <Link className="w-6 h-6" />
+            </button>
+            <button
+              aria-label="Share"
+              className="text-black hover:scale-105 transition-transform"
+            >
+              <Share2 className="w-6 h-6" />
+            </button>
+            <button
+              aria-label="Settings"
+              className="text-black hover:scale-105 transition-transform hover:animate-spinHalf"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/club/event/${event.id}`);
+              }}
+            >
+              <Settings className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white">
@@ -168,13 +288,15 @@ export default function EventsPage() {
           <TabsContent value="current" className="mt-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <AddEventCard />
-              {sampleEvents.current.map((event) => (
-                <EventCard
-                  key={event.id}
-                  title={event.title}
-                  imageUrl={event.imageUrl}
-                />
-              ))}
+              {isLoading ? (
+                <div className="col-span-full flex justify-center items-center py-8">
+                  <div className="text-neutral-400">Loading events...</div>
+                </div>
+              ) : (
+                currentEvents.map((event) => (
+                  <SupabaseEventCard key={event.id} event={event} />
+                ))
+              )}
             </div>
           </TabsContent>
 

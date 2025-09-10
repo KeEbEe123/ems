@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus, Copy } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 type TabType = "details" | "forms" | "coupons" | "tickets";
 
@@ -46,8 +47,29 @@ interface Ticket {
   available: number;
 }
 
-export function EventInfoPage() {
+interface Event {
+  id: string;
+  name: string;
+  start_datetime: string;
+  end_datetime: string;
+  event_type: string;
+  status: string;
+  venue: string;
+  city: string;
+  country: string;
+  additional_details: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface EventInfoPageProps {
+  event: Event;
+  onEventUpdate: () => void;
+}
+
+export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
   const [activeTab, setActiveTab] = useState<TabType>("details");
+  const [isSaving, setIsSaving] = useState(false);
 
   // Event Details State
   const [eventDetails, setEventDetails] = useState({
@@ -60,6 +82,70 @@ export function EventInfoPage() {
     category: "",
     status: "draft",
   });
+
+  // Initialize event details with event data
+  useEffect(() => {
+    if (event) {
+      const startDate = new Date(event.start_datetime);
+      const endDate = new Date(event.end_datetime);
+
+      setEventDetails({
+        name: event.name || "",
+        description: event.additional_details || "",
+        date: startDate.toISOString().split("T")[0],
+        time: startDate.toTimeString().slice(0, 5),
+        location: event.venue || "",
+        capacity: "100", // Default value since not in event schema
+        category: event.event_type || "",
+        status: event.status || "draft",
+      });
+    }
+  }, [event]);
+
+  // Save event function
+  const saveEventDetails = async () => {
+    if (!event) return;
+
+    setIsSaving(true);
+    try {
+      // Combine date and time for start_datetime
+      const startDateTime = new Date(
+        `${eventDetails.date}T${eventDetails.time}:00Z`
+      );
+      const endDateTime = new Date(
+        startDateTime.getTime() + 2 * 60 * 60 * 1000
+      ); // Add 2 hours as default
+
+      const { error } = await supabase
+        .from("events")
+        .update({
+          name: eventDetails.name,
+          start_datetime: startDateTime.toISOString(),
+          end_datetime: endDateTime.toISOString(),
+          event_type: eventDetails.category,
+          status: eventDetails.status,
+          venue: eventDetails.location,
+          city: eventDetails.location,
+          country: "Online", // Default value
+          additional_details: eventDetails.description,
+        })
+        .eq("id", event.id);
+
+      if (error) {
+        console.error("Error updating event:", error);
+        alert("Error updating event. Please try again.");
+        return;
+      }
+
+      alert("Event updated successfully!");
+      onEventUpdate(); // Refresh the event data
+    } catch (error) {
+      console.error("Error updating event:", error);
+      alert("Error updating event. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Forms State
   const [formFields, setFormFields] = useState<FormField[]>([]);
@@ -88,6 +174,97 @@ export function EventInfoPage() {
     available: 100,
   });
 
+  // Load data from Supabase
+  useEffect(() => {
+    if (event) {
+      loadFormFields();
+      loadCoupons();
+      loadTickets();
+    }
+  }, [event]);
+
+  const loadFormFields = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("event_forms")
+        .select("*")
+        .eq("event_id", event.id)
+        .order("field_order");
+
+      if (error) {
+        console.error("Error loading form fields:", error);
+        return;
+      }
+
+      setFormFields(
+        data?.map((field) => ({
+          id: field.id,
+          type: field.field_type,
+          label: field.field_label,
+          required: field.field_required,
+          options: field.field_options,
+        })) || []
+      );
+    } catch (error) {
+      console.error("Error loading form fields:", error);
+    }
+  };
+
+  const loadCoupons = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("event_coupons")
+        .select("*")
+        .eq("event_id", event.id);
+
+      if (error) {
+        console.error("Error loading coupons:", error);
+        return;
+      }
+
+      setCoupons(
+        data?.map((coupon) => ({
+          id: coupon.id,
+          code: coupon.code,
+          discount: coupon.discount_amount,
+          type: coupon.discount_type,
+          maxUses: coupon.max_uses,
+          currentUses: coupon.current_uses,
+          active: coupon.is_active,
+        })) || []
+      );
+    } catch (error) {
+      console.error("Error loading coupons:", error);
+    }
+  };
+
+  const loadTickets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("event_tickets")
+        .select("*")
+        .eq("event_id", event.id);
+
+      if (error) {
+        console.error("Error loading tickets:", error);
+        return;
+      }
+
+      setTickets(
+        data?.map((ticket) => ({
+          id: ticket.id,
+          name: ticket.name,
+          class: ticket.ticket_class,
+          price: ticket.price,
+          inclusions: ticket.inclusions || [],
+          available: ticket.available_quantity,
+        })) || []
+      );
+    } catch (error) {
+      console.error("Error loading tickets:", error);
+    }
+  };
+
   const tabs = [
     { id: "details", label: "Event Details" },
     { id: "forms", label: "Forms" },
@@ -96,65 +273,196 @@ export function EventInfoPage() {
   ];
 
   // Form Functions
-  const addFormField = () => {
-    if (newField.label) {
-      const field: FormField = {
-        id: Date.now().toString(),
-        type: newField.type || "text",
-        label: newField.label,
-        required: newField.required || false,
-        options: newField.options,
+  const addFormField = async () => {
+    if (!newField.label || !event) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("event_forms")
+        .insert([
+          {
+            event_id: event.id,
+            field_type: newField.type || "text",
+            field_label: newField.label,
+            field_required: newField.required || false,
+            field_options: newField.options || [],
+            field_order: formFields.length,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error adding form field:", error);
+        alert("Error adding form field. Please try again.");
+        return;
+      }
+
+      const newFormField: FormField = {
+        id: data.id,
+        type: data.field_type,
+        label: data.field_label,
+        required: data.field_required,
+        options: data.field_options,
       };
-      setFormFields([...formFields, field]);
+
+      setFormFields([...formFields, newFormField]);
       setNewField({ type: "text", label: "", required: false });
+    } catch (error) {
+      console.error("Error adding form field:", error);
+      alert("Error adding form field. Please try again.");
     }
   };
 
-  const removeFormField = (id: string) => {
-    setFormFields(formFields.filter((field) => field.id !== id));
+  const removeFormField = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("event_forms")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error removing form field:", error);
+        alert("Error removing form field. Please try again.");
+        return;
+      }
+
+      setFormFields(formFields.filter((field) => field.id !== id));
+    } catch (error) {
+      console.error("Error removing form field:", error);
+      alert("Error removing form field. Please try again.");
+    }
   };
 
   // Coupon Functions
-  const addCoupon = () => {
-    if (newCoupon.code) {
-      const coupon: Coupon = {
-        id: Date.now().toString(),
-        code: newCoupon.code.toUpperCase(),
-        discount: newCoupon.discount,
-        type: newCoupon.type,
-        maxUses: newCoupon.maxUses,
-        currentUses: 0,
-        active: true,
+  const addCoupon = async () => {
+    if (!newCoupon.code || !event) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("event_coupons")
+        .insert([
+          {
+            event_id: event.id,
+            code: newCoupon.code.toUpperCase(),
+            discount_amount: newCoupon.discount,
+            discount_type: newCoupon.type,
+            max_uses: newCoupon.maxUses,
+            current_uses: 0,
+            is_active: true,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error adding coupon:", error);
+        alert("Error adding coupon. Please try again.");
+        return;
+      }
+
+      const newCouponData: Coupon = {
+        id: data.id,
+        code: data.code,
+        discount: data.discount_amount,
+        type: data.discount_type,
+        maxUses: data.max_uses,
+        currentUses: data.current_uses,
+        active: data.is_active,
       };
-      setCoupons([...coupons, coupon]);
+
+      setCoupons([...coupons, newCouponData]);
       setNewCoupon({ code: "", discount: 0, type: "percentage", maxUses: 100 });
+    } catch (error) {
+      console.error("Error adding coupon:", error);
+      alert("Error adding coupon. Please try again.");
     }
   };
 
-  const toggleCoupon = (id: string) => {
-    setCoupons(
-      coupons.map((coupon) =>
-        coupon.id === id ? { ...coupon, active: !coupon.active } : coupon
-      )
-    );
+  const toggleCoupon = async (id: string) => {
+    try {
+      const coupon = coupons.find((c) => c.id === id);
+      if (!coupon) return;
+
+      const { error } = await supabase
+        .from("event_coupons")
+        .update({ is_active: !coupon.active })
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error toggling coupon:", error);
+        alert("Error updating coupon. Please try again.");
+        return;
+      }
+
+      setCoupons(
+        coupons.map((coupon) =>
+          coupon.id === id ? { ...coupon, active: !coupon.active } : coupon
+        )
+      );
+    } catch (error) {
+      console.error("Error toggling coupon:", error);
+      alert("Error updating coupon. Please try again.");
+    }
   };
 
-  const removeCoupon = (id: string) => {
-    setCoupons(coupons.filter((coupon) => coupon.id !== id));
+  const removeCoupon = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("event_coupons")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error removing coupon:", error);
+        alert("Error removing coupon. Please try again.");
+        return;
+      }
+
+      setCoupons(coupons.filter((coupon) => coupon.id !== id));
+    } catch (error) {
+      console.error("Error removing coupon:", error);
+      alert("Error removing coupon. Please try again.");
+    }
   };
 
   // Ticket Functions
-  const addTicket = () => {
-    if (newTicket.name) {
-      const ticket: Ticket = {
-        id: Date.now().toString(),
-        name: newTicket.name,
-        class: newTicket.class,
-        price: newTicket.price,
-        inclusions: newTicket.inclusions.filter((inc) => inc.trim() !== ""),
-        available: newTicket.available,
+  const addTicket = async () => {
+    if (!newTicket.name || !event) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("event_tickets")
+        .insert([
+          {
+            event_id: event.id,
+            name: newTicket.name,
+            ticket_class: newTicket.class,
+            price: newTicket.price,
+            inclusions: newTicket.inclusions.filter((inc) => inc.trim() !== ""),
+            available_quantity: newTicket.available,
+            sold_quantity: 0,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error adding ticket:", error);
+        alert("Error adding ticket. Please try again.");
+        return;
+      }
+
+      const newTicketData: Ticket = {
+        id: data.id,
+        name: data.name,
+        class: data.ticket_class,
+        price: data.price,
+        inclusions: data.inclusions || [],
+        available: data.available_quantity,
       };
-      setTickets([...tickets, ticket]);
+
+      setTickets([...tickets, newTicketData]);
       setNewTicket({
         name: "",
         class: "general",
@@ -162,11 +470,30 @@ export function EventInfoPage() {
         inclusions: [""],
         available: 100,
       });
+    } catch (error) {
+      console.error("Error adding ticket:", error);
+      alert("Error adding ticket. Please try again.");
     }
   };
 
-  const removeTicket = (id: string) => {
-    setTickets(tickets.filter((ticket) => ticket.id !== id));
+  const removeTicket = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("event_tickets")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error removing ticket:", error);
+        alert("Error removing ticket. Please try again.");
+        return;
+      }
+
+      setTickets(tickets.filter((ticket) => ticket.id !== id));
+    } catch (error) {
+      console.error("Error removing ticket:", error);
+      alert("Error removing ticket. Please try again.");
+    }
   };
 
   const addInclusion = () => {
@@ -190,7 +517,7 @@ export function EventInfoPage() {
     <div className="p-6 bg-black min-h-screen">
       <div className="mb-6">
         <h1 className="text-white text-lg font-medium mb-4">
-          Club - Event Dashboard - Event Info Page
+          Club - Event Dashboard - {event?.name || "Event Info Page"}
         </h1>
         <div className="flex gap-1">
           {tabs.map((tab) => (
@@ -355,8 +682,12 @@ export function EventInfoPage() {
               </Select>
             </div>
 
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              Save Event Details
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={saveEventDetails}
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save Event Details"}
             </Button>
           </CardContent>
         </Card>

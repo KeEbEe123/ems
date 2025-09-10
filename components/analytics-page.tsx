@@ -6,6 +6,25 @@ import { Button } from "@/components/ui/button";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { Progress } from "@/components/ui/progress";
 
+interface Event {
+  id: string;
+  name: string;
+  start_datetime: string;
+  end_datetime: string;
+  event_type: string;
+  status: string;
+  venue: string;
+  city: string;
+  country: string;
+  additional_details: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AnalyticsPageProps {
+  event: Event;
+}
+
 const salesData = [
   { name: "Jan", value: 20000 },
   { name: "Feb", value: 19500 },
@@ -48,7 +67,7 @@ const ticketStatus = [
   { name: "Day 2 Pass", sold: 0, total: 500, percentage: 0 },
 ];
 
-export function AnalyticsPage() {
+export function AnalyticsPage({ event }: AnalyticsPageProps) {
   return (
     <div className="p-6 bg-transparent min-h-screen">
       <div className="mb-6">
