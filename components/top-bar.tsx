@@ -1,67 +1,95 @@
+// TopBar.tsx
 "use client";
 
 import React from "react";
-import { Search, Inbox } from "lucide-react";
+import { Search, Inbox, MoveRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "./theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Link from "next/link";
+import { useSession, signIn, signOut } from "next-auth/react";
 
 export function TopBar() {
+  const { data: session } = useSession();
+  console.log(session?.user);
+
   return (
     <div className="w-full fixed top-0 left-0 right-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-background/80 dark:supports-[backdrop-filter]:bg-background/40 border-b border-gray-200 dark:border-white/10 bg-white/80 dark:bg-transparent">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4 py-4">
-          {/* Left placeholder for app icon */}
           <div className="h-8 w-16 rounded-sm bg-primary/80 dark:bg-white/20" />
 
-          {/* Center search with subtle glow */}
           <div className="flex-1">
-            <div className="relative max-w-2xl mx-auto">
+            <div className="relative mx-auto max-w-2xl">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 placeholder="Search for events..."
-                className="h-10 rounded-full w-full pl-9 pr-4 text-sm bg-white/90 dark:bg-gray-800/90 border-gray-200 dark:border-gray-700 focus-visible:ring-primary/40"
+                className="h-10 w-full rounded-full bg-white/90 pl-9 pr-4 text-sm dark:border-gray-700 dark:bg-gray-800/90 focus-visible:ring-primary/40"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Theme Toggle */}
             <ThemeToggle />
 
-            {/* Notification */}
-            <div className="relative grid place-items-center h-9 w-9 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition">
-              <Inbox className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-              <span className="absolute -right-[2px] -top-[2px] h-2.5 w-2.5 rounded-full bg-orange-400 ring-2 ring-white dark:ring-gray-900" />
-            </div>
+            {session && (
+              <div className="relative grid h-9 w-9 place-items-center rounded-full transition hover:bg-gray-100 dark:hover:bg-white/5">
+                <Inbox className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                <span className="absolute -right-[2px] -top-[2px] h-2.5 w-2.5 rounded-full bg-orange-400 ring-2 ring-white dark:ring-gray-900" />
+              </div>
+            )}
 
-            {/* Avatar */}
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger>
-                <Avatar
-                  fallback="KD"
-                  className="h-9 w-9 border-2 border-primary/30"
-                />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end">
-                <Link href="/user/profile">
-                  <DropdownMenuItem>Profile</DropdownMenuItem>
-                </Link>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-500 hover:text-red-600">
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {session ? (
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger>
+                  <Avatar>
+                    <AvatarImage
+                      src={session.user?.image ?? ""}
+                      alt={session.user?.name ?? ""}
+                    />
+                    <AvatarFallback>{session.user?.name?.[0]}</AvatarFallback>
+                  </Avatar>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end">
+                  <a href="/user/profile">
+                    <DropdownMenuItem>Profile</DropdownMenuItem>
+                  </a>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-red-500 hover:text-red-600"
+                    onClick={() => signOut()}
+                  >
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              // DIRECT GOOGLE AUTH
+              <button
+                type="button"
+                onClick={() =>
+                  signIn("google", {
+                    // send user back here after login
+                    callbackUrl: "/home",
+                  })
+                }
+                style={{ maxWidth: "240px" }}
+                className="group mx-auto flex items-center rounded-sm bg-gradient-to-r from-[#FF8AC9] via-[#D96CE5] to-[#7B2FE5] p-1 shadow-lg"
+              >
+                <span className="flex w-full items-center justify-center rounded-xs bg-white px-6 py-1 text-md font-light text-black dark:bg-[#1A1A1A] dark:text-white">
+                  <span className="flex items-center">
+                    Login
+                    <MoveRight className="ml-1 h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-2" />
+                  </span>
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>

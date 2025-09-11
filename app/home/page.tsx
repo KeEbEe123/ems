@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Carousel,
   CarouselContent,
@@ -14,8 +14,49 @@ import { FocusCards } from "@/components/ui/focus-cards";
 import FadeContent from "@/components/FadeContent";
 import LogoLoop from "@/components/LogoLoop";
 import { HomeIcon } from "lucide-react";
+import { supabase } from "@/lib/supabase/browserClient";
 function Page() {
   const plugin = useRef(Autoplay({ delay: 4000, stopOnInteraction: true }));
+  const [events, setEvents] = useState<
+    Array<{ id: string; name: string; banners: Record<string, string> }>
+  >([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("events")
+          .select("id,name,banners,created_at")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("[home] events fetch error:", error.message);
+          setEvents([]);
+          return;
+        }
+
+        const filtered = (data || []).filter((e: any) => {
+          let b: Record<string, string> = {};
+          try {
+            b =
+              typeof e.banners === "string" ? JSON.parse(e.banners) : e.banners;
+          } catch (err) {
+            console.warn("Invalid banners JSON:", e.banners);
+          }
+          return (
+            Boolean(b?.["1x1"]) && Boolean(b?.["16:9"]) && Boolean(b?.["21:9"])
+          );
+        });
+
+        setEvents(filtered as any);
+      } catch (err: any) {
+        console.error("[home] events fetch error:", err?.message || err);
+        setEvents([]);
+      }
+    };
+    load();
+  }, []);
+
   const imageLogos = [
     {
       src: "/logos/company1.png",
@@ -28,32 +69,14 @@ function Page() {
       href: "https://company2.com",
     },
   ];
-  const cards = [
-    {
-      title: "Equinox",
-      src: "https://images.unsplash.com/photo-1518710843675-2540dd79065c?q=80&w=3387&auto=format&fit=crop&ixlib=rb-4.0.3",
-    },
-    {
-      title: "B2B",
-      src: "https://images.unsplash.com/photo-1600271772470-bd22a42787b3?q=80&w=3072&auto=format&fit=crop&ixlib=rb-4.0.3",
-    },
-    {
-      title: "Codex",
-      src: "https://images.unsplash.com/photo-1505142468610-359e7d316be0?q=80&w=3070&auto=format&fit=crop&ixlib=rb-4.0.3",
-    },
-    {
-      title: "MUN 2025",
-      src: "https://images.unsplash.com/photo-1486915309851-b0cc1f8a0084?q=80&w=3387&auto=format&fit=crop&ixlib=rb-4.0.3",
-    },
-    {
-      title: "Init Saga",
-      src: "https://images.unsplash.com/photo-1507041957456-9c397ce39c97?q=80&w=3456&auto=format&fit=crop&ixlib=rb-4.0.3",
-    },
-    {
-      title: "Eloquent",
-      src: "https://assets.aceternity.com/the-first-rule.png",
-    },
-  ];
+  const cards = useMemo(
+    () =>
+      events.map((e) => ({
+        title: e.name,
+        src: e.banners?.["1x1"] || "",
+      })),
+    [events]
+  );
 
   return (
     <div className="relative min-h-screen flex items-center justify-center dark:bg-[#0A0B1E] bg-white overflow-hidden">
@@ -81,10 +104,14 @@ function Page() {
             onMouseEnter={plugin.current?.stop}
             onMouseLeave={plugin.current?.reset}
           >
-            <CarouselContent className="-ml-4 md:-ml-6">
-              {Array.from({ length: 5 }).map((_, index) => (
+            <CarouselContent
+              className={`-ml-4 md:-ml-6 ${
+                events.length === 1 ? "justify-center" : ""
+              }`}
+            >
+              {events.map((e) => (
                 <CarouselItem
-                  key={index}
+                  key={e.id}
                   className="pl-4 md:pl-6 basis-[90%] sm:basis-[85%] md:basis-[75%] lg:basis-[70%]"
                 >
                   {/* no borders, no shadow, no padding */}
@@ -93,15 +120,15 @@ function Page() {
                     <CardContent className="relative p-0 overflow-hidden rounded-2xl aspect-video md:aspect-[21/9]">
                       {/* Mobile (16:9) */}
                       <img
-                        src="https://i.ibb.co/RTTp4KzR/equinox-169.png"
-                        alt={`Equinox ${index + 1}`}
+                        src={e.banners?.["16:9"]}
+                        alt={`${e.name} 16:9 banner`}
                         className="block md:hidden absolute inset-0 w-full h-full object-cover"
                         draggable={false}
                       />
                       {/* Desktop (21:9) — your 886x380 PNG */}
                       <img
-                        src="https://i.ibb.co/tP1xHZ1G/equinox-219.png"
-                        alt={`Equinox ${index + 1}`}
+                        src={e.banners?.["21:9"]}
+                        alt={`${e.name} 21:9 banner`}
                         className="hidden md:block absolute inset-0 w-full h-full object-cover"
                         draggable={false}
                       />
@@ -127,20 +154,6 @@ function Page() {
             {/* Width + left padding mirror CarouselItem: basis + pl */}
             <div className="mx-auto w-[90%] sm:w-[85%] md:w-[75%] lg:w-[70%] px-4 md:px-6">
               <h2 className="text-3xl font-bold mb-6 font-poppins">Live Now</h2>
-              <FocusCards cards={cards} />
-            </div>
-          </FadeContent>
-        </div>
-        <div className="mt-20">
-          <FadeContent
-            blur={true}
-            duration={500}
-            easing="ease-out"
-            initialOpacity={0}
-          >
-            {/* Width + left padding mirror CarouselItem: basis + pl */}
-            <div className="mx-auto w-[90%] sm:w-[85%] md:w-[75%] lg:w-[70%] px-4 md:px-6">
-              <h2 className="text-3xl font-bold mb-6 font-poppins">Upcoming</h2>
               <FocusCards cards={cards} />
             </div>
           </FadeContent>

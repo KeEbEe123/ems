@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ["source.unsplash.com"],
+    domains: ["source.unsplash.com", "hxcygmrgqrfjoggeuwnw.supabase.co"],
   },
 };
 

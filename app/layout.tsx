@@ -4,7 +4,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Poppins } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "Club Event Dashboard",
@@ -27,12 +27,12 @@ export default function RootLayout({
       <body
         className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${poppins.className}`}
       >
-        <ThemeProvider>
+        <Providers>
           {/* Spacer to offset the fixed top bar height */}
           <main className="min-h-screen bg-background text-foreground">
             {children}
           </main>
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

@@ -2,25 +2,16 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
-import {
-  IconMenu2,
-  IconChartBar,
-  IconUsers,
-  IconClipboard,
-  IconCalendar,
-} from "@tabler/icons-react";
-import { motion } from "motion/react";
-import { EventInfoPage } from "@/components/event-info-page";
-import { AfterEventPage } from "@/components/after-event-page";
-import { ParticipantsPage } from "@/components/participants-page";
-import { AnalyticsPage } from "@/components/analytics-page";
+import { CalendarPlus, BadgeCheck } from "lucide-react";
+import { motion } from "framer-motion";
 import React from "react";
 import { Separator } from "@/components/ui/separator";
 import { Home, LogOut } from "lucide-react";
+import { IICEventCalendar } from "@/components/iic-event-calendar";
+import { ManageSelfHostedEvents } from "@/components/manage-self-hosted-events";
+import { createClient } from "@supabase/supabase-js";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { supabase } from "@/lib/supabase/browserClient";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import Router from "next/router";
+import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { useSession } from "next-auth/react";
 
 interface Event {
@@ -36,9 +27,11 @@ interface Event {
   additional_details: string;
   created_at: string;
   updated_at: string;
-  // Optional: source/ownership of the event; used to detect IIC-hosted events
-  hosted?: string;
 }
+
+const supabaseUrl = "https://your-supabase-url.supabase.co";
+const supabaseKey = "your-supabase-key";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function EventDashboard() {
   const params = useParams();
@@ -52,6 +45,8 @@ export default function EventDashboard() {
   useEffect(() => {
     if (eventId) {
       fetchEvent();
+    } else {
+      setIsLoading(false);
     }
   }, [eventId]);
 
@@ -78,44 +73,20 @@ export default function EventDashboard() {
 
   const links = [
     {
-      label: "Menu",
+      label: "IIC Event Calender",
       href: "#",
       icon: (
-        <IconMenu2 className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
+        <CalendarPlus className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
       ),
-      id: "menu",
+      id: "iic-event-calender",
     },
     {
-      label: "Analytics",
+      label: "Manage Self Hosted Events",
       href: "#",
       icon: (
-        <IconChartBar className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
+        <BadgeCheck className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
       ),
-      id: "analytics",
-    },
-    {
-      label: "Participants",
-      href: "#",
-      icon: (
-        <IconUsers className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
-      ),
-      id: "participants",
-    },
-    {
-      label: "Event Info",
-      href: "#",
-      icon: (
-        <IconClipboard className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
-      ),
-      id: "event-info",
-    },
-    {
-      label: "After Event",
-      href: "#",
-      icon: (
-        <IconCalendar className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
-      ),
-      id: "after-event",
+      id: "manage-self-hosted-events",
     },
     {
       label: "Logout",
@@ -139,39 +110,16 @@ export default function EventDashboard() {
     if (id !== "menu") {
       setCurrentPage(id);
     }
-    if (id === "home") {
-      window.location.href = "/club";
-    }
   };
 
   const renderCurrentPage = () => {
-    if (isLoading) {
-      return (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-neutral-400">Loading event...</div>
-        </div>
-      );
-    }
-
-    if (!event) {
-      return (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-red-400">Event not found</div>
-        </div>
-      );
-    }
-
     switch (currentPage) {
-      case "event-info":
-        return <EventInfoPage event={event} onEventUpdate={fetchEvent} />;
-      case "after-event":
-        return <AfterEventPage eventId={eventId} />;
-      case "participants":
-        return <ParticipantsPage event={event} />;
-      case "analytics":
-        return <AnalyticsPage event={event} />;
+      case "iic-event-calender":
+        return <IICEventCalendar />;
+      case "manage-self-hosted-events":
+        return <ManageSelfHostedEvents />;
       default:
-        return <EventInfoPage event={event} onEventUpdate={fetchEvent} />;
+        return <IICEventCalendar />;
     }
   };
 
@@ -191,7 +139,7 @@ export default function EventDashboard() {
                     >
                       <SidebarLink link={link} />
                     </div>
-                    {link.id === "after-event" && (
+                    {link.id === "manage-self-hosted-events" && (
                       <Separator className="my-4" />
                     )}
                   </React.Fragment>
@@ -230,40 +178,7 @@ export default function EventDashboard() {
           </SidebarBody>
         </Sidebar>
       </div>
-      {/* Main content area with conditional IIC overlay (except on After Event page) */}
-      <div className="relative flex-1 bg-neutral-900">
-        {/** Underlying content gets blurred when overlay is active */}
-        <div
-          className={`${
-            event?.hosted === "iic" && currentPage !== "after-event"
-              ? "blur-lg"
-              : ""
-          }`}
-        >
-          {renderCurrentPage()}
-        </div>
-
-        {/** Overlay shown for IIC-hosted events on all pages except After Event */}
-        {event?.hosted === "iic" && currentPage !== "after-event" && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center">
-            <div className="mx-4 w-full max-w-xl rounded-lg border border-white/10 bg-black p-6 text-center shadow-lg">
-              <h2 className="mb-2 text-xl font-semibold text-white">
-                This is an IIC event
-              </h2>
-              <p className="mb-6 text-sm text-neutral-300">
-                All features are restricted for IIC events except report
-                submission.
-              </p>
-              <button
-                onClick={() => setCurrentPage("after-event")}
-                className="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-black hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-white/50"
-              >
-                Go to Report Submission
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      <div className="flex-1 bg-neutral-900">{renderCurrentPage()}</div>
     </div>
   );
 }

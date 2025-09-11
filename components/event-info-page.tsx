@@ -16,7 +16,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus, Copy } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/browserClient";
+import Image from "next/image";
 
 type TabType = "details" | "forms" | "coupons" | "tickets";
 
@@ -60,6 +61,7 @@ interface Event {
   additional_details: string;
   created_at: string;
   updated_at: string;
+  banners?: Record<string, string> | null;
 }
 
 interface EventInfoPageProps {
@@ -70,6 +72,40 @@ interface EventInfoPageProps {
 export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
   const [activeTab, setActiveTab] = useState<TabType>("details");
   const [isSaving, setIsSaving] = useState(false);
+  // Banners
+  const [banners, setBanners] = useState<{
+    banner_1x1: { path: string; url: string } | null;
+    banner_16x9: { path: string; url: string } | null;
+    banner_21x9: { path: string; url: string } | null;
+    logo_png: { path: string; url: string } | null;
+  }>({ banner_1x1: null, banner_16x9: null, banner_21x9: null, logo_png: null });
+
+  // JSON key mapping for events.banners
+  const bannerKeyMap: Record<keyof typeof banners, string> = {
+    banner_1x1: "1x1",
+    banner_16x9: "16:9",
+    banner_21x9: "21:9",
+    logo_png: "logo",
+  };
+
+  const setBannersFromJson = (json: Record<string, string> | null | undefined) => {
+    if (!json) return;
+    setBanners((prev) => ({
+      banner_1x1: json["1x1"] ? { path: "", url: json["1x1"] } : null,
+      banner_16x9: json["16:9"] ? { path: "", url: json["16:9"] } : null,
+      banner_21x9: json["21:9"] ? { path: "", url: json["21:9"] } : null,
+      logo_png: json["logo"] ? { path: "", url: json["logo"] } : null,
+    }));
+  };
+
+  const buildBannersJson = (state: typeof banners) => {
+    const out: Record<string, string> = {};
+    if (state.banner_1x1?.url) out["1x1"] = state.banner_1x1.url;
+    if (state.banner_16x9?.url) out["16:9"] = state.banner_16x9.url;
+    if (state.banner_21x9?.url) out["21:9"] = state.banner_21x9.url;
+    if (state.logo_png?.url) out["logo"] = state.logo_png.url;
+    return out;
+  };
 
   // Event Details State
   const [eventDetails, setEventDetails] = useState({
@@ -99,8 +135,53 @@ export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
         category: event.event_type || "",
         status: event.status || "draft",
       });
+
+      // Initialize banners from events.banners JSON if present
+      setBannersFromJson((event as any).banners);
     }
   }, [event]);
+
+  // Load existing banners from storage (public bucket assumed) if DB banners missing
+  useEffect(() => {
+    const loadBanners = async () => {
+      if (!event?.id) return;
+      // If we already have banners from DB, skip listing
+      const hasAny = Object.values(banners).some(Boolean);
+      if (hasAny) return;
+      const bucket = "event-assets"; // recommended bucket
+      const basePath = `${event.id}/banners`;
+      try {
+        // Attempt to fetch known keys; public URLs are deterministic if present
+        const keys = [
+          { k: "banner_1x1", file: "banner_1x1" },
+          { k: "banner_16x9", file: "banner_16x9" },
+          { k: "banner_21x9", file: "banner_21x9" },
+          { k: "logo_png", file: "logo_png" },
+        ] as const;
+
+        const found: Partial<typeof banners> = {};
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .list(basePath);
+        if (!error && data && data.length > 0) {
+          for (const { k, file } of keys) {
+            const match = data.find((d) => d.name.startsWith(file));
+            if (match) {
+              const path = `${basePath}/${match.name}`;
+              const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
+              (found as any)[k] = { path, url: pub.publicUrl };
+            }
+          }
+        }
+        // Merge only found entries to avoid wiping out newly set values
+        setBanners((prev) => ({ ...prev, ...(found as any) }));
+      } catch (e) {
+        console.error("Error loading banners:", e);
+      }
+    };
+    loadBanners();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.id]);
 
   // Save event function
   const saveEventDetails = async () => {
@@ -123,7 +204,6 @@ export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
           start_datetime: startDateTime.toISOString(),
           end_datetime: endDateTime.toISOString(),
           event_type: eventDetails.category,
-          status: eventDetails.status,
           venue: eventDetails.location,
           city: eventDetails.location,
           country: "Online", // Default value
@@ -560,7 +640,7 @@ export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
               </div>
               <div>
                 <Label htmlFor="category" className="text-white">
-                  Category
+                  Event Type
                 </Label>
                 <Select
                   value={eventDetails.category}
@@ -572,10 +652,8 @@ export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="conference">Conference</SelectItem>
-                    <SelectItem value="workshop">Workshop</SelectItem>
-                    <SelectItem value="party">Party</SelectItem>
-                    <SelectItem value="networking">Networking</SelectItem>
+                    <SelectItem value="free">Free</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -661,27 +739,6 @@ export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
               />
             </div>
 
-            <div>
-              <Label htmlFor="status" className="text-white">
-                Status
-              </Label>
-              <Select
-                value={eventDetails.status}
-                onValueChange={(value) =>
-                  setEventDetails({ ...eventDetails, status: value })
-                }
-              >
-                <SelectTrigger className="bg-neutral-800 border-neutral-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             <Button
               className="bg-blue-600 hover:bg-blue-700"
               onClick={saveEventDetails}
@@ -689,6 +746,152 @@ export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
             >
               {isSaving ? "Saving..." : "Save Event Details"}
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Banners Section */}
+      {activeTab === "details" && (
+        <Card className="bg-neutral-900 border-neutral-700 mt-6">
+          <CardHeader>
+            <CardTitle className="text-white">Banners</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <p className="text-neutral-400 text-sm">
+              Upload promotional assets for this event. One file per slot. You can delete and re-upload anytime.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {(
+                [
+                  { key: "banner_1x1", label: "1x1 banner (max 5MB)", maxMB: 5, accept: "image/png,image/jpeg,image/webp" },
+                  { key: "banner_16x9", label: "16:9 banner (max 5MB)", maxMB: 5, accept: "image/png,image/jpeg,image/webp" },
+                  { key: "banner_21x9", label: "21:9 banner (max 10MB)", maxMB: 10, accept: "image/png,image/jpeg,image/webp" },
+                  { key: "logo_png", label: "PNG logo (max 2MB)", maxMB: 2, accept: "image/png" },
+                ] as const
+              ).map((cfg) => (
+                <div key={cfg.key} className="border border-neutral-700 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-white text-sm font-medium">{cfg.label}</h4>
+                    {banners[cfg.key as keyof typeof banners] && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-400 hover:text-red-300"
+                        onClick={async () => {
+                          const current = banners[cfg.key as keyof typeof banners];
+                          if (!current) return;
+                          const bucket = "event-assets";
+                          let delPath = current.path;
+                          // If path is missing (e.g., loaded from DB JSON), resolve by listing the folder and matching prefix
+                          if (!delPath) {
+                            const basePath = `${event.id}/banners`;
+                            const { data: list, error: listErr } = await supabase.storage
+                              .from(bucket)
+                              .list(basePath);
+                            if (!listErr && list && list.length > 0) {
+                              const match = list.find((d) => d.name.startsWith(cfg.key));
+                              if (match) delPath = `${basePath}/${match.name}`;
+                            }
+                          }
+                          if (!delPath) {
+                            alert("Could not resolve file path to delete.");
+                            return;
+                          }
+                          const res = await fetch("/api/storage/delete", {
+                            method: "POST",
+                            body: JSON.stringify({ bucket, path: delPath }),
+                            headers: { "Content-Type": "application/json" },
+                          });
+                          if (!res.ok) {
+                            alert("Failed to delete asset");
+                            return;
+                          }
+                          // Update local state and persist to DB
+                          const nextState = { ...banners, [cfg.key]: null } as typeof banners;
+                          setBanners(nextState);
+                          try {
+                            const json = buildBannersJson(nextState);
+                            const { error } = await supabase
+                              .from("events")
+                              .update({ banners: json })
+                              .eq("id", event.id);
+                            if (error) console.error("Failed to update banners JSON:", error.message);
+                          } catch (e) {
+                            console.error("Unexpected error updating banners JSON:", e);
+                          }
+                        }}
+                        title="Delete file"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {banners[cfg.key as keyof typeof banners] ? (
+                    <div className="relative w-full h-40 bg-neutral-800 rounded overflow-hidden">
+                      <Image
+                        src={(banners[cfg.key as keyof typeof banners] as any).url}
+                        alt={cfg.label}
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="file"
+                        accept={cfg.accept}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const maxBytes = cfg.maxMB * 1024 * 1024;
+                          if (file.size > maxBytes) {
+                            alert(`File too large. Max ${cfg.maxMB}MB`);
+                            e.currentTarget.value = "";
+                            return;
+                          }
+                          // Path and upload
+                          const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+                          if (cfg.key === "logo_png" && ext !== "png") {
+                            alert("Logo must be a PNG file");
+                            e.currentTarget.value = "";
+                            return;
+                          }
+                          const path = `${event.id}/banners/${cfg.key}.${ext}`;
+                          const fd = new FormData();
+                          fd.append("bucket", "event-assets");
+                          fd.append("path", path);
+                          fd.append("file", file);
+                          const res = await fetch("/api/storage/upload", { method: "POST", body: fd });
+                          if (!res.ok) {
+                            const j = await res.json().catch(() => ({}));
+                            alert(`Upload failed: ${j?.error || res.statusText}`);
+                            e.currentTarget.value = "";
+                            return;
+                          }
+                          const j = await res.json();
+                          // Update local state and persist to DB
+                          const nextState2 = { ...banners, [cfg.key]: { path, url: j.publicUrl } } as typeof banners;
+                          setBanners(nextState2);
+                          try {
+                            const json = buildBannersJson(nextState2);
+                            const { error } = await supabase
+                              .from("events")
+                              .update({ banners: json })
+                              .eq("id", event.id);
+                            if (error) console.error("Failed to update banners JSON:", error.message);
+                          } catch (e) {
+                            console.error("Unexpected error updating banners JSON:", e);
+                          }
+                        }}
+                        className="text-white"
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -886,6 +1089,8 @@ export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
                         variant="ghost"
                         size="sm"
                         className="text-neutral-400"
+                        onClick={() => navigator.clipboard.writeText(coupon.code)}
+                        title="Copy code"
                       >
                         <Copy className="w-4 h-4" />
                       </Button>

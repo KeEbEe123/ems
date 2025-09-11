@@ -120,10 +120,15 @@
   .animate-spin-half {
     animation: spin-half 200ms ease-in-out;
   }
+
+  .animate-slide {
+    animation: slide 200ms ease-in-out;
+  }
 }
 @theme {
   --animate-spinEase: spin-ease 700ms;
   --animate-spinHalf: spin-half 400ms;
+  --animate-slide: slide 200ms;
   @keyframes spin-ease {
     0% {
       transform: rotate(0deg);
@@ -138,6 +143,14 @@
     }
     100% {
       transform: rotate(180deg);
+    }
+  }
+  @keyframes slide {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(10px);
     }
   }
 }

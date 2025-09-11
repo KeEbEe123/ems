@@ -21,8 +21,9 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle, Upload, FileText, Share2, Calendar, AlertCircle, X } from "lucide-react";
-import { useState, useRef } from "react";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useState, useRef } from "react";
+import { useSession } from "next-auth/react";
+import { supabase } from "@/lib/supabase/browserClient";
 import { toast } from "sonner";
 
 interface FormData {
@@ -56,11 +57,18 @@ interface ValidationErrors {
   [key: string]: string;
 }
 
-export function AfterEventPage() {
+interface AfterEventPageProps {
+  eventId: string;
+}
+
+export function AfterEventPage({ eventId }: AfterEventPageProps) {
+  const { data: session } = useSession();
+  const sessionUserId = (session as any)?.user?.id || null;
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [reportId, setReportId] = useState<string | null>(null);
   
   // Form data state
   const [formData, setFormData] = useState<FormData>({
@@ -95,6 +103,72 @@ export function AfterEventPage() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const reportInputRef = useRef<HTMLInputElement>(null);
+
+  // Load existing report to restore progress/state
+  useEffect(() => {
+    const loadExistingReport = async () => {
+      try {
+        if (!sessionUserId) return;
+
+        // Fetch the latest report submitted by this user. If your schema adds event_id later, filter by eventId as well.
+        const { data, error } = await supabase
+          .from('after_event_reports')
+          .select('*')
+          .eq('submitted_by', sessionUserId)
+          .eq('event_id', eventId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error loading existing report:', error);
+          return;
+        }
+
+        if (data) {
+          setReportId(data.id);
+          // Restore form data
+          setFormData({
+            programType: data.program_type || '',
+            otherProgramType: data.other_program_type || '',
+            programTheme: data.program_theme || '',
+            duration: data.duration_hours || 0,
+            startDate: data.start_date || '',
+            endDate: data.end_date || '',
+            studentParticipants: data.student_participants || 0,
+            facultyParticipants: data.faculty_participants || 0,
+            externalParticipants: data.external_participants || 0,
+            expenditure: Number(data.expenditure_amount || 0),
+            remark: data.remark || '',
+            sessionDelivery: data.session_delivery_mode || '',
+            activityLead: data.activity_lead_by || '',
+            objective: data.objective || '',
+            benefits: data.benefits || '',
+            twitterUrl: data.twitter_url || '',
+            instagramUrl: data.instagram_url || '',
+            linkedinUrl: data.linkedin_url || '',
+          });
+
+          // Restore steps based on booleans
+          const stepsCompleted: number[] = [];
+          if (data.report_submitted) stepsCompleted.push(0);
+          if (data.media_uploaded) stepsCompleted.push(1);
+          if (data.social_media_promoted) stepsCompleted.push(2);
+          setCompletedSteps(stepsCompleted);
+
+          // Set the next active step
+          if (!data.report_submitted) setCurrentStep(0);
+          else if (!data.media_uploaded) setCurrentStep(1);
+          else if (!data.social_media_promoted) setCurrentStep(2);
+          else setCurrentStep(2);
+        }
+      } catch (e) {
+        console.error('Unexpected error loading report:', e);
+      }
+    };
+
+    loadExistingReport();
+  }, [eventId, sessionUserId]);
   
   // Social media checkboxes
   const [socialMediaChecked, setSocialMediaChecked] = useState({
@@ -204,71 +278,57 @@ export function AfterEventPage() {
       .toLowerCase();
   };
   
-  // Upload file to Supabase storage
-  const uploadFile = async (file: File, bucket: string, path: string): Promise<string | null> => {
-    try {
-      const sanitizedPath = sanitizeFilename(path);
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(sanitizedPath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (error) throw error;
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(data.path);
-      
-      return publicUrl;
-    } catch (error) {
-      console.error('Upload error:', error);
-      return null;
+  // Upload file to Supabase storage using anon key (browser client)
+  const uploadFile = async (file: File, bucket: string, path: string): Promise<string> => {
+    const sanitizedPath = sanitizeFilename(path);
+    console.debug('[upload] start', { bucket, path: sanitizedPath, name: file.name, size: file.size, type: file.type });
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(sanitizedPath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: (file as any).type || 'application/octet-stream',
+      });
+    if (error) {
+      console.error('[upload] supabase error', error);
+      throw error;
     }
+    const { data: pub } = supabase.storage.from(bucket).getPublicUrl(data.path);
+    console.debug('[upload] success', { path: data.path, publicUrl: pub.publicUrl });
+    if (!pub.publicUrl) throw new Error('Failed to get public URL');
+    return pub.publicUrl;
   };
   
   // Submit form data to database
-  const submitToDatabase = async (imageUrls: string[], videoUrl: string | null, reportUrl: string | null) => {
-    try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
+  const upsertReport = async (fields: Record<string, any>) => {
+    if (!sessionUserId) {
+      console.error('No user in NextAuth session');
+      throw new Error('User not authenticated');
+    }
+
+    const payload = {
+      ...fields,
+      event_id: eventId,
+      submitted_by: sessionUserId,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (reportId) {
+      const { error } = await supabase
+        .from('after_event_reports')
+        .update(payload)
+        .eq('id', reportId);
+      if (error) throw error;
+      return reportId;
+    } else {
       const { data, error } = await supabase
         .from('after_event_reports')
-        .insert({
-          program_type: formData.programType,
-          other_program_type: formData.otherProgramType || null,
-          program_theme: formData.programTheme,
-          duration_hours: formData.duration,
-          start_date: formData.startDate,
-          end_date: formData.endDate,
-          student_participants: formData.studentParticipants,
-          faculty_participants: formData.facultyParticipants,
-          external_participants: formData.externalParticipants,
-          expenditure_amount: formData.expenditure,
-          remark: formData.remark || null,
-          session_delivery_mode: formData.sessionDelivery,
-          activity_lead_by: formData.activityLead,
-          objective: formData.objective,
-          benefits: formData.benefits,
-          event_images: imageUrls,
-          event_video: videoUrl,
-          event_report: reportUrl,
-          twitter_url: formData.twitterUrl || null,
-          instagram_url: formData.instagramUrl || null,
-          linkedin_url: formData.linkedinUrl || null,
-          report_submitted: true,
-          media_uploaded: true,
-          social_media_promoted: socialMediaChecked.twitter || socialMediaChecked.instagram || socialMediaChecked.linkedin,
-          submitted_by: user?.id || null
-        });
-      
+        .insert(payload)
+        .select('id')
+        .single();
       if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Database error:', error);
-      throw error;
+      setReportId(data.id);
+      return data.id as string;
     }
   };
   
@@ -300,58 +360,84 @@ export function AfterEventPage() {
     
     try {
       if (stepId === 0) {
-        if (!validateStep1()) {
-          setIsSubmitting(false);
-          return;
-        }
+        if (!validateStep1()) { setIsSubmitting(false); return; }
+        await upsertReport({
+          program_type: formData.programType,
+          other_program_type: formData.otherProgramType || null,
+          program_theme: formData.programTheme,
+          duration_hours: formData.duration,
+          start_date: formData.startDate,
+          end_date: formData.endDate,
+          student_participants: formData.studentParticipants,
+          faculty_participants: formData.facultyParticipants,
+          external_participants: formData.externalParticipants,
+          expenditure_amount: formData.expenditure,
+          remark: formData.remark || null,
+          session_delivery_mode: formData.sessionDelivery,
+          activity_lead_by: formData.activityLead,
+          objective: formData.objective,
+          benefits: formData.benefits,
+          report_submitted: true,
+        });
+        toast.success('Report saved!');
       } else if (stepId === 1) {
-        if (!validateStep2()) {
+        if (!validateStep2()) { setIsSubmitting(false); return; }
+        try {
+          // Upload images
+          const imageUrls: string[] = [];
+          for (let i = 0; i < fileUploads.eventImages.length; i++) {
+            const file = fileUploads.eventImages[i];
+            const ext = file.name.split('.').pop() || 'jpg';
+            const path = `${eventId}/image_${Date.now()}_${i}.${ext}`;
+            const url = await uploadFile(file, 'event-images', path);
+            imageUrls.push(url);
+          }
+
+          // Upload video if exists
+          let videoUrl: string | null = null;
+          if (fileUploads.eventVideo) {
+            const ext = fileUploads.eventVideo.name.split('.').pop() || 'mp4';
+            const path = `${eventId}/video_${Date.now()}.${ext}`;
+            videoUrl = await uploadFile(fileUploads.eventVideo, 'event-videos', path);
+          }
+
+          // Upload report (required)
+          let reportUrl: string | null = null;
+          if (fileUploads.eventReport) {
+            const ext = fileUploads.eventReport.name.split('.').pop() || 'pdf';
+            const path = `${eventId}/report_${Date.now()}.${ext}`;
+            reportUrl = await uploadFile(fileUploads.eventReport, 'event-reports', path);
+          }
+
+          // Ensure required uploads exist
+          if (imageUrls.length === 0 || !reportUrl) {
+            toast.error('Upload failed. Please ensure at least one image and a report are uploaded.');
+            setIsSubmitting(false);
+            return;
+          }
+
+          await upsertReport({
+            event_images: imageUrls,
+            event_video: videoUrl,
+            event_report: reportUrl,
+            media_uploaded: true,
+          });
+
+          toast.success('Files uploaded and saved!');
+        } catch (err) {
+          console.error('Upload/save failed:', err);
+          toast.error('Upload failed. Please try again.');
           setIsSubmitting(false);
           return;
         }
-        
-        // Upload files
-        const imageUrls: string[] = [];
-        let videoUrl: string | null = null;
-        let reportUrl: string | null = null;
-        
-        // Upload images
-        for (let i = 0; i < fileUploads.eventImages.length; i++) {
-          const file = fileUploads.eventImages[i];
-          const fileExtension = file.name.split('.').pop() || 'jpg';
-          const path = `image_${Date.now()}_${i}.${fileExtension}`;
-          const url = await uploadFile(file, 'event-images', path);
-          if (url) imageUrls.push(url);
-        }
-        
-        // Upload video if exists
-        if (fileUploads.eventVideo) {
-          const fileExtension = fileUploads.eventVideo.name.split('.').pop() || 'mp4';
-          const path = `video_${Date.now()}.${fileExtension}`;
-          videoUrl = await uploadFile(fileUploads.eventVideo, 'event-videos', path);
-        }
-        
-        // Upload report
-        if (fileUploads.eventReport) {
-          const fileExtension = fileUploads.eventReport.name.split('.').pop() || 'pdf';
-          const path = `report_${Date.now()}.${fileExtension}`;
-          reportUrl = await uploadFile(fileUploads.eventReport, 'event-reports', path);
-        }
-        
-        // Submit to database
-        try {
-          await submitToDatabase(imageUrls, videoUrl, reportUrl);
-        } catch (dbError) {
-          console.error('Database submission failed:', dbError);
-          // If user is not authenticated, we can still proceed but show a warning
-          toast.error('Data submission failed. Please ensure you are logged in.');
-          return;
-        }
-        
-        toast.success('Files uploaded and data saved successfully!');
       } else if (stepId === 2) {
-        // Update social media URLs in database if needed
-        toast.success('Social media promotion links saved!');
+        await upsertReport({
+          twitter_url: formData.twitterUrl || null,
+          instagram_url: formData.instagramUrl || null,
+          linkedin_url: formData.linkedinUrl || null,
+          social_media_promoted: !!(formData.twitterUrl || formData.instagramUrl || formData.linkedinUrl),
+        });
+        toast.success('Social media links saved!');
       }
       
       if (!completedSteps.includes(stepId)) {
