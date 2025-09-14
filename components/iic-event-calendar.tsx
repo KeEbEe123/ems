@@ -12,6 +12,13 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -55,7 +62,7 @@ export function IICEventCalendar() {
   const [isLoadingClubs, setIsLoadingClubs] = useState(false);
   const [form, setForm] = useState({
     title: "",
-    eventDate: "",
+    description: "",
     semesterQuarter: "",
     clubId: "",
   });
@@ -97,6 +104,20 @@ export function IICEventCalendar() {
     setOpen(true);
   };
 
+  // Helper function to get date range from semester quarter selection
+  const getDateRange = (semesterQuarter: string) => {
+    if (semesterQuarter === "semester-1-quarter-1") {
+      return "September - November";
+    } else if (semesterQuarter === "semester-1-quarter-2") {
+      return "December - February";
+    } else if (semesterQuarter === "semester-2-quarter-3") {
+      return "March - May";
+    } else if (semesterQuarter === "semester-2-quarter-4") {
+      return "June - August";
+    }
+    return "";
+  };
+
   // fetch events from Supabase filtered by hosted='iic' and optional semester/quarter
   const fetchEvents = async () => {
     try {
@@ -107,7 +128,7 @@ export function IICEventCalendar() {
 
       let query = supabase
         .from("events")
-        .select("id, name, additional_details, quarter, semester")
+        .select("id, name, additional_details, quarter, semester, description")
         .eq("hosted", "iic")
         .order("created_at", { ascending: false });
 
@@ -120,7 +141,7 @@ export function IICEventCalendar() {
         id: e.id,
         title: e.name,
         quarter: e.quarter || "",
-        description: e.additional_details || "",
+        description: e.description || e.additional_details || "",
       }));
       setEvents(mapped);
     } catch (e) {
@@ -167,8 +188,8 @@ export function IICEventCalendar() {
   const handleSubmit = async () => {
     setSubmitError(null);
     setSubmitSuccess(null);
-    const { title, eventDate, semesterQuarter, clubId } = form;
-    if (!title || !eventDate || !semesterQuarter || !clubId) {
+    const { title, description, semesterQuarter, clubId } = form;
+    if (!title || !description || !semesterQuarter || !clubId) {
       setSubmitError("Please fill all fields.");
       return;
     }
@@ -178,11 +199,13 @@ export function IICEventCalendar() {
     const semester = parts.length >= 2 ? `${parts[0]}-${parts[1]}` : "";
     const quarter = parts.length >= 4 ? `${parts[2]}-${parts[3]}` : "";
 
+    // Calculate date_range based on semester and quarter
+    const dateRange = getDateRange(semesterQuarter).replace(" - ", "-");
+
     try {
       setSubmitting(true);
-      // Ensure end_datetime is strictly after start_datetime to satisfy check constraints
-      const start = new Date(eventDate);
-      // add 1 hour to start time for end time
+      // Use dummy dates since we're using date_range now
+      const start = new Date();
       const end = new Date(start.getTime() + 60 * 60 * 1000);
 
       const payload: Record<string, any> = {
@@ -198,13 +221,15 @@ export function IICEventCalendar() {
         venue: "",
         city: "",
         country: "",
-        additional_details: "",
+        additional_details: description,
+        description: description,
+        date_range: dateRange,
       };
       const { error } = await supabase.from("events").insert(payload);
       if (error) throw error;
       setSubmitSuccess("Event created successfully.");
       setOpen(false);
-      setForm({ title: "", eventDate: "", semesterQuarter: "", clubId: "" });
+      setForm({ title: "", description: "", semesterQuarter: "", clubId: "" });
       // refresh list
       fetchEvents();
     } catch (e: any) {
@@ -233,47 +258,51 @@ export function IICEventCalendar() {
   );
 
   const EventCard = ({ event }: { event: EventData }) => (
-    <div className="group relative overflow-hidden border border-white/20 bg-neutral-900">
-      <div className="p-4 flex flex-col gap-3">
+    <Card className="bg-gradient-to-tl from-[#3A3CBA] via-[#FF1D1D] to-[#FCB045]">
+      <CardHeader>
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-base font-semibold text-white leading-snug">
+          <CardTitle className="text-white text-2xl leading-snug">
             {event.title}
-          </h3>
-          <Badge className="bg-blue-600 text-white shrink-0">
-            {event.quarter}
-          </Badge>
+          </CardTitle>
+          {event.quarter && (
+            <Badge className="bg-blue-600 text-white shrink-0">
+              {event.quarter}
+            </Badge>
+          )}
         </div>
-        <p className="text-xs text-neutral-300 line-clamp-3">
-          {event.description}
-        </p>
-        <div className="flex items-center justify-end gap-2 pt-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="View details"
-            className="text-neutral-300 hover:text-white"
-            onClick={() => handleViewReport(event.id)}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Remove from calendar"
-            className="text-red-400 hover:text-red-300"
-            onClick={() => handleRemoveFromCalendar(event.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
+        {event.description && (
+          <CardDescription className="text-neutral-200 line-clamp-3">
+            {event.description}
+          </CardDescription>
+        )}
+      </CardHeader>
+      <CardFooter className="justify-end gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="View details"
+          className="text-white"
+          onClick={() => handleViewReport(event.id)}
+        >
+          <Eye className="h-10 w-10" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Remove from calendar"
+          className="text-white/90"
+          onClick={() => handleRemoveFromCalendar(event.id)}
+        >
+          <Trash2 className="h-10 w-10" />
+        </Button>
+      </CardFooter>
+    </Card>
   );
 
   return (
-    <div className="p-6 bg-neutral-900 min-h-screen">
+    <div className="p-6 dark:from-purple-950 dark:via-neutral-900 dark:to-black bg-gradient-to-tl from-pink-300 via-white to-white min-h-screen">
       <div className="mb-6">
-        <h1 className="text-white text-lg font-medium mb-4">
+        <h1 className="text-lg font-medium mb-4">
           Club - Admin Dashboard - IIC Event Calendar
         </h1>
 
@@ -296,16 +325,16 @@ export function IICEventCalendar() {
                 Semester 1 - Quarter 2
               </SelectItem>
               <SelectItem
-                value="semester-2-quarter-1"
+                value="semester-2-quarter-3"
                 className="text-white hover:bg-neutral-700"
               >
-                Semester 2 - Quarter 1
+                Semester 2 - Quarter 3
               </SelectItem>
               <SelectItem
-                value="semester-2-quarter-2"
+                value="semester-2-quarter-4"
                 className="text-white hover:bg-neutral-700"
               >
-                Semester 2 - Quarter 2
+                Semester 2 - Quarter 4
               </SelectItem>
             </SelectContent>
           </Select>
@@ -345,17 +374,16 @@ export function IICEventCalendar() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-neutral-300">Event Date</label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="date"
-                  value={form.eventDate}
-                  onChange={(e) =>
-                    setForm({ ...form, eventDate: e.target.value })
-                  }
-                  className="bg-neutral-800 border-neutral-700 text-white"
-                />
-              </div>
+              <label className="text-sm text-neutral-300">Description</label>
+              <Input
+                value={form.description}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
+                className="bg-neutral-800 border-neutral-700 text-white"
+                placeholder="Enter event description"
+                required
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm text-neutral-300">
@@ -382,19 +410,24 @@ export function IICEventCalendar() {
                     Semester 1 - Quarter 2
                   </SelectItem>
                   <SelectItem
-                    value="semester-2-quarter-1"
+                    value="semester-2-quarter-3"
                     className="text-white"
                   >
-                    Semester 2 - Quarter 1
+                    Semester 2 - Quarter 3
                   </SelectItem>
                   <SelectItem
-                    value="semester-2-quarter-2"
+                    value="semester-2-quarter-4"
                     className="text-white"
                   >
-                    Semester 2 - Quarter 2
+                    Semester 2 - Quarter 4
                   </SelectItem>
                 </SelectContent>
               </Select>
+              {form.semesterQuarter && (
+                <div className="text-sm text-blue-400 mt-2">
+                  📅 Date Range: {getDateRange(form.semesterQuarter)}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm text-neutral-300">Club</label>

@@ -2,67 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabase/browserClient";
-import Image from "next/image";
-
-type TabType = "details" | "forms" | "coupons" | "tickets";
-
-interface FormField {
-  id: string;
-  type: "text" | "email" | "number" | "textarea" | "select" | "checkbox";
-  label: string;
-  required: boolean;
-  options?: string[];
-}
-
-interface Coupon {
-  id: string;
-  code: string;
-  discount: number;
-  type: "percentage" | "fixed";
-  maxUses: number;
-  currentUses: number;
-  active: boolean;
-}
-
-interface Ticket {
-  id: string;
-  name: string;
-  class: "general" | "vip" | "premium";
-  price: number;
-  inclusions: string[];
-  available: number;
-}
-
-interface Event {
-  id: string;
-  name: string;
-  start_datetime: string;
-  end_datetime: string;
-  event_type: string;
-  status: string;
-  venue: string;
-  city: string;
-  country: string;
-  additional_details: string;
-  created_at: string;
-  updated_at: string;
-  banners?: Record<string, string> | null;
-}
+import DetailsTab from "@/components/event-info/DetailsTab";
+import FormsTab from "@/components/event-info/FormsTab";
+import CouponsTab from "@/components/event-info/CouponsTab";
+import TicketsTab from "@/components/event-info/TicketsTab";
+import type {
+  TabType,
+  FormField,
+  Coupon,
+  Ticket,
+  Event,
+  BannerState,
+} from "@/components/event-info/types";
 
 interface EventInfoPageProps {
   event: Event;
@@ -73,12 +25,12 @@ export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
   const [activeTab, setActiveTab] = useState<TabType>("details");
   const [isSaving, setIsSaving] = useState(false);
   // Banners
-  const [banners, setBanners] = useState<{
-    banner_1x1: { path: string; url: string } | null;
-    banner_16x9: { path: string; url: string } | null;
-    banner_21x9: { path: string; url: string } | null;
-    logo_png: { path: string; url: string } | null;
-  }>({ banner_1x1: null, banner_16x9: null, banner_21x9: null, logo_png: null });
+  const [banners, setBanners] = useState<BannerState>({
+    banner_1x1: null,
+    banner_16x9: null,
+    banner_21x9: null,
+    logo_png: null,
+  });
 
   // JSON key mapping for events.banners
   const bannerKeyMap: Record<keyof typeof banners, string> = {
@@ -88,7 +40,9 @@ export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
     logo_png: "logo",
   };
 
-  const setBannersFromJson = (json: Record<string, string> | null | undefined) => {
+  const setBannersFromJson = (
+    json: Record<string, string> | null | undefined
+  ) => {
     if (!json) return;
     setBanners((prev) => ({
       banner_1x1: json["1x1"] ? { path: "", url: json["1x1"] } : null,
@@ -168,7 +122,9 @@ export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
             const match = data.find((d) => d.name.startsWith(file));
             if (match) {
               const path = `${basePath}/${match.name}`;
-              const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
+              const { data: pub } = supabase.storage
+                .from(bucket)
+                .getPublicUrl(path);
               (found as any)[k] = { path, url: pub.publicUrl };
             }
           }
@@ -237,10 +193,10 @@ export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
 
   // Coupons State
   const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [newCoupon, setNewCoupon] = useState({
+  const [newCoupon, setNewCoupon] = useState<{ code: string; discount: number; type: "percentage" | "fixed"; maxUses: number }>({
     code: "",
     discount: 0,
-    type: "percentage" as const,
+    type: "percentage",
     maxUses: 100,
   });
 
@@ -616,700 +572,48 @@ export function EventInfoPage({ event, onEventUpdate }: EventInfoPageProps) {
           ))}
         </div>
       </div>
-
-      {/* Event Details Tab */}
       {activeTab === "details" && (
-        <Card className="bg-neutral-900 border-neutral-700">
-          <CardHeader>
-            <CardTitle className="text-white">Event Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="eventName" className="text-white">
-                  Event Name
-                </Label>
-                <Input
-                  id="eventName"
-                  value={eventDetails.name}
-                  onChange={(e) =>
-                    setEventDetails({ ...eventDetails, name: e.target.value })
-                  }
-                  className="bg-neutral-800 border-neutral-600 text-white"
-                />
-              </div>
-              <div>
-                <Label htmlFor="category" className="text-white">
-                  Event Type
-                </Label>
-                <Select
-                  value={eventDetails.category}
-                  onValueChange={(value) =>
-                    setEventDetails({ ...eventDetails, category: value })
-                  }
-                >
-                  <SelectTrigger className="bg-neutral-800 border-neutral-600 text-white">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="free">Free</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="description" className="text-white">
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                value={eventDetails.description}
-                onChange={(e) =>
-                  setEventDetails({
-                    ...eventDetails,
-                    description: e.target.value,
-                  })
-                }
-                className="bg-neutral-800 border-neutral-600 text-white"
-                rows={4}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="date" className="text-white">
-                  Date
-                </Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={eventDetails.date}
-                  onChange={(e) =>
-                    setEventDetails({ ...eventDetails, date: e.target.value })
-                  }
-                  className="bg-neutral-800 border-neutral-600 text-white"
-                />
-              </div>
-              <div>
-                <Label htmlFor="time" className="text-white">
-                  Time
-                </Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={eventDetails.time}
-                  onChange={(e) =>
-                    setEventDetails({ ...eventDetails, time: e.target.value })
-                  }
-                  className="bg-neutral-800 border-neutral-600 text-white"
-                />
-              </div>
-              <div>
-                <Label htmlFor="capacity" className="text-white">
-                  Capacity
-                </Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  value={eventDetails.capacity}
-                  onChange={(e) =>
-                    setEventDetails({
-                      ...eventDetails,
-                      capacity: e.target.value,
-                    })
-                  }
-                  className="bg-neutral-800 border-neutral-600 text-white"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="location" className="text-white">
-                Location
-              </Label>
-              <Input
-                id="location"
-                value={eventDetails.location}
-                onChange={(e) =>
-                  setEventDetails({ ...eventDetails, location: e.target.value })
-                }
-                className="bg-neutral-800 border-neutral-600 text-white"
-              />
-            </div>
-
-            <Button
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={saveEventDetails}
-              disabled={isSaving}
-            >
-              {isSaving ? "Saving..." : "Save Event Details"}
-            </Button>
-          </CardContent>
-        </Card>
+        <DetailsTab
+          event={event}
+          eventDetails={eventDetails}
+          setEventDetails={setEventDetails}
+          isSaving={isSaving}
+          saveEventDetails={saveEventDetails}
+          banners={banners}
+          setBanners={setBanners}
+          buildBannersJson={buildBannersJson}
+        />
       )}
-
-      {/* Banners Section */}
-      {activeTab === "details" && (
-        <Card className="bg-neutral-900 border-neutral-700 mt-6">
-          <CardHeader>
-            <CardTitle className="text-white">Banners</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <p className="text-neutral-400 text-sm">
-              Upload promotional assets for this event. One file per slot. You can delete and re-upload anytime.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {(
-                [
-                  { key: "banner_1x1", label: "1x1 banner (max 5MB)", maxMB: 5, accept: "image/png,image/jpeg,image/webp" },
-                  { key: "banner_16x9", label: "16:9 banner (max 5MB)", maxMB: 5, accept: "image/png,image/jpeg,image/webp" },
-                  { key: "banner_21x9", label: "21:9 banner (max 10MB)", maxMB: 10, accept: "image/png,image/jpeg,image/webp" },
-                  { key: "logo_png", label: "PNG logo (max 2MB)", maxMB: 2, accept: "image/png" },
-                ] as const
-              ).map((cfg) => (
-                <div key={cfg.key} className="border border-neutral-700 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-white text-sm font-medium">{cfg.label}</h4>
-                    {banners[cfg.key as keyof typeof banners] && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-400 hover:text-red-300"
-                        onClick={async () => {
-                          const current = banners[cfg.key as keyof typeof banners];
-                          if (!current) return;
-                          const bucket = "event-assets";
-                          let delPath = current.path;
-                          // If path is missing (e.g., loaded from DB JSON), resolve by listing the folder and matching prefix
-                          if (!delPath) {
-                            const basePath = `${event.id}/banners`;
-                            const { data: list, error: listErr } = await supabase.storage
-                              .from(bucket)
-                              .list(basePath);
-                            if (!listErr && list && list.length > 0) {
-                              const match = list.find((d) => d.name.startsWith(cfg.key));
-                              if (match) delPath = `${basePath}/${match.name}`;
-                            }
-                          }
-                          if (!delPath) {
-                            alert("Could not resolve file path to delete.");
-                            return;
-                          }
-                          const res = await fetch("/api/storage/delete", {
-                            method: "POST",
-                            body: JSON.stringify({ bucket, path: delPath }),
-                            headers: { "Content-Type": "application/json" },
-                          });
-                          if (!res.ok) {
-                            alert("Failed to delete asset");
-                            return;
-                          }
-                          // Update local state and persist to DB
-                          const nextState = { ...banners, [cfg.key]: null } as typeof banners;
-                          setBanners(nextState);
-                          try {
-                            const json = buildBannersJson(nextState);
-                            const { error } = await supabase
-                              .from("events")
-                              .update({ banners: json })
-                              .eq("id", event.id);
-                            if (error) console.error("Failed to update banners JSON:", error.message);
-                          } catch (e) {
-                            console.error("Unexpected error updating banners JSON:", e);
-                          }
-                        }}
-                        title="Delete file"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-
-                  {banners[cfg.key as keyof typeof banners] ? (
-                    <div className="relative w-full h-40 bg-neutral-800 rounded overflow-hidden">
-                      <Image
-                        src={(banners[cfg.key as keyof typeof banners] as any).url}
-                        alt={cfg.label}
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="file"
-                        accept={cfg.accept}
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          const maxBytes = cfg.maxMB * 1024 * 1024;
-                          if (file.size > maxBytes) {
-                            alert(`File too large. Max ${cfg.maxMB}MB`);
-                            e.currentTarget.value = "";
-                            return;
-                          }
-                          // Path and upload
-                          const ext = file.name.split(".").pop()?.toLowerCase() || "png";
-                          if (cfg.key === "logo_png" && ext !== "png") {
-                            alert("Logo must be a PNG file");
-                            e.currentTarget.value = "";
-                            return;
-                          }
-                          const path = `${event.id}/banners/${cfg.key}.${ext}`;
-                          const fd = new FormData();
-                          fd.append("bucket", "event-assets");
-                          fd.append("path", path);
-                          fd.append("file", file);
-                          const res = await fetch("/api/storage/upload", { method: "POST", body: fd });
-                          if (!res.ok) {
-                            const j = await res.json().catch(() => ({}));
-                            alert(`Upload failed: ${j?.error || res.statusText}`);
-                            e.currentTarget.value = "";
-                            return;
-                          }
-                          const j = await res.json();
-                          // Update local state and persist to DB
-                          const nextState2 = { ...banners, [cfg.key]: { path, url: j.publicUrl } } as typeof banners;
-                          setBanners(nextState2);
-                          try {
-                            const json = buildBannersJson(nextState2);
-                            const { error } = await supabase
-                              .from("events")
-                              .update({ banners: json })
-                              .eq("id", event.id);
-                            if (error) console.error("Failed to update banners JSON:", error.message);
-                          } catch (e) {
-                            console.error("Unexpected error updating banners JSON:", e);
-                          }
-                        }}
-                        className="text-white"
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Forms Tab */}
       {activeTab === "forms" && (
-        <Card className="bg-neutral-900 border-neutral-700">
-          <CardHeader>
-            <CardTitle className="text-white">Form Creator</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="border border-neutral-600 rounded-lg p-4">
-              <h3 className="text-white font-medium mb-4">Add New Field</h3>
-              <div className="grid grid-cols-4 gap-4 mb-4">
-                <div>
-                  <Label className="text-white">Field Type</Label>
-                  <Select
-                    value={newField.type}
-                    onValueChange={(value) =>
-                      setNewField({ ...newField, type: value as any })
-                    }
-                  >
-                    <SelectTrigger className="bg-neutral-800 border-neutral-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text">Text</SelectItem>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="number">Number</SelectItem>
-                      <SelectItem value="textarea">Textarea</SelectItem>
-                      <SelectItem value="select">Select</SelectItem>
-                      <SelectItem value="checkbox">Checkbox</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-white">Label</Label>
-                  <Input
-                    value={newField.label}
-                    onChange={(e) =>
-                      setNewField({ ...newField, label: e.target.value })
-                    }
-                    className="bg-neutral-800 border-neutral-600 text-white"
-                  />
-                </div>
-                <div className="flex items-center space-x-2 pt-6">
-                  <Switch
-                    checked={newField.required}
-                    onCheckedChange={(checked) =>
-                      setNewField({ ...newField, required: checked })
-                    }
-                  />
-                  <Label className="text-white">Required</Label>
-                </div>
-                <div className="pt-6">
-                  <Button
-                    onClick={addFormField}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Field
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="text-white font-medium">Form Fields</h3>
-              {formFields.map((field) => (
-                <div
-                  key={field.id}
-                  className="flex items-center justify-between bg-neutral-800 p-3 rounded-lg"
-                >
-                  <div className="flex items-center space-x-4">
-                    <Badge
-                      variant="outline"
-                      className="text-white border-neutral-600"
-                    >
-                      {field.type}
-                    </Badge>
-                    <span className="text-white">{field.label}</span>
-                    {field.required && (
-                      <Badge className="bg-red-600">Required</Badge>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFormField(field.id)}
-                    className="text-red-400 hover:text-red-300"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-              {formFields.length === 0 && (
-                <p className="text-neutral-400 text-center py-8">
-                  No form fields created yet
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <FormsTab
+          formFields={formFields}
+          newField={newField}
+          setNewField={setNewField}
+          addFormField={addFormField}
+          removeFormField={removeFormField}
+        />
       )}
-
-      {/* Coupons Tab */}
       {activeTab === "coupons" && (
-        <Card className="bg-neutral-900 border-neutral-700">
-          <CardHeader>
-            <CardTitle className="text-white">Coupon Management</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="border border-neutral-600 rounded-lg p-4">
-              <h3 className="text-white font-medium mb-4">Create New Coupon</h3>
-              <div className="grid grid-cols-4 gap-4 mb-4">
-                <div>
-                  <Label className="text-white">Coupon Code</Label>
-                  <Input
-                    value={newCoupon.code}
-                    onChange={(e) =>
-                      setNewCoupon({ ...newCoupon, code: e.target.value })
-                    }
-                    placeholder="SAVE20"
-                    className="bg-neutral-800 border-neutral-600 text-white"
-                  />
-                </div>
-                <div>
-                  <Label className="text-white">Discount</Label>
-                  <Input
-                    type="number"
-                    value={newCoupon.discount}
-                    onChange={(e) =>
-                      setNewCoupon({
-                        ...newCoupon,
-                        discount: Number(e.target.value),
-                      })
-                    }
-                    className="bg-neutral-800 border-neutral-600 text-white"
-                  />
-                </div>
-                <div>
-                  <Label className="text-white">Type</Label>
-                  <Select
-                    value={newCoupon.type}
-                    onValueChange={(value) =>
-                      setNewCoupon({ ...newCoupon, type: value as any })
-                    }
-                  >
-                    <SelectTrigger className="bg-neutral-800 border-neutral-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="percentage">Percentage (%)</SelectItem>
-                      <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-white">Max Uses</Label>
-                  <Input
-                    type="number"
-                    value={newCoupon.maxUses}
-                    onChange={(e) =>
-                      setNewCoupon({
-                        ...newCoupon,
-                        maxUses: Number(e.target.value),
-                      })
-                    }
-                    className="bg-neutral-800 border-neutral-600 text-white"
-                  />
-                </div>
-              </div>
-              <Button
-                onClick={addCoupon}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Coupon
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="text-white font-medium">Active Coupons</h3>
-              {coupons.map((coupon) => (
-                <div
-                  key={coupon.id}
-                  className="flex items-center justify-between bg-neutral-800 p-4 rounded-lg"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <code className="bg-neutral-700 px-2 py-1 rounded text-white font-mono">
-                        {coupon.code}
-                      </code>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-neutral-400"
-                        onClick={() => navigator.clipboard.writeText(coupon.code)}
-                        title="Copy code"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <span className="text-white">
-                      {coupon.discount}
-                      {coupon.type === "percentage" ? "%" : "$"} off
-                    </span>
-                    <span className="text-neutral-400">
-                      {coupon.currentUses}/{coupon.maxUses} uses
-                    </span>
-                    <Badge variant={coupon.active ? "default" : "secondary"}>
-                      {coupon.active ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={coupon.active}
-                      onCheckedChange={() => toggleCoupon(coupon.id)}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeCoupon(coupon.id)}
-                      className="text-red-400 hover:text-red-300"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {coupons.length === 0 && (
-                <p className="text-neutral-400 text-center py-8">
-                  No coupons created yet
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <CouponsTab
+          coupons={coupons}
+          newCoupon={newCoupon}
+          setNewCoupon={setNewCoupon}
+          addCoupon={addCoupon}
+          toggleCoupon={toggleCoupon}
+          removeCoupon={removeCoupon}
+        />
       )}
-
-      {/* Tickets Tab */}
       {activeTab === "tickets" && (
-        <Card className="bg-neutral-900 border-neutral-700">
-          <CardHeader>
-            <CardTitle className="text-white">Ticket Management</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="border border-neutral-600 rounded-lg p-4">
-              <h3 className="text-white font-medium mb-4">Create New Ticket</h3>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <Label className="text-white">Ticket Name</Label>
-                  <Input
-                    value={newTicket.name}
-                    onChange={(e) =>
-                      setNewTicket({ ...newTicket, name: e.target.value })
-                    }
-                    placeholder="General Admission"
-                    className="bg-neutral-800 border-neutral-600 text-white"
-                  />
-                </div>
-                <div>
-                  <Label className="text-white">Ticket Class</Label>
-                  <Select
-                    value={newTicket.class}
-                    onValueChange={(value) =>
-                      setNewTicket({ ...newTicket, class: value as any })
-                    }
-                  >
-                    <SelectTrigger className="bg-neutral-800 border-neutral-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="general">General</SelectItem>
-                      <SelectItem value="vip">VIP</SelectItem>
-                      <SelectItem value="premium">Premium</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-white">Price ($)</Label>
-                  <Input
-                    type="number"
-                    value={newTicket.price}
-                    onChange={(e) =>
-                      setNewTicket({
-                        ...newTicket,
-                        price: Number(e.target.value),
-                      })
-                    }
-                    className="bg-neutral-800 border-neutral-600 text-white"
-                  />
-                </div>
-                <div>
-                  <Label className="text-white">Available Quantity</Label>
-                  <Input
-                    type="number"
-                    value={newTicket.available}
-                    onChange={(e) =>
-                      setNewTicket({
-                        ...newTicket,
-                        available: Number(e.target.value),
-                      })
-                    }
-                    className="bg-neutral-800 border-neutral-600 text-white"
-                  />
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <Label className="text-white">What's Included</Label>
-                <div className="space-y-2 mt-2">
-                  {newTicket.inclusions.map((inclusion, index) => (
-                    <div key={index} className="flex gap-2">
-                      <Input
-                        value={inclusion}
-                        onChange={(e) => updateInclusion(index, e.target.value)}
-                        placeholder="e.g., Event access, Welcome drink"
-                        className="bg-neutral-800 border-neutral-600 text-white"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeInclusion(index)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="ghost"
-                    onClick={addInclusion}
-                    className="text-blue-400 hover:text-blue-300"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Inclusion
-                  </Button>
-                </div>
-              </div>
-
-              <Button
-                onClick={addTicket}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Ticket
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="text-white font-medium">Created Tickets</h3>
-              {tickets.map((ticket) => (
-                <div key={ticket.id} className="bg-neutral-800 p-4 rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <h4 className="text-white font-medium">{ticket.name}</h4>
-                      <Badge
-                        variant="outline"
-                        className={`
-                          ${
-                            ticket.class === "general"
-                              ? "border-blue-500 text-blue-400"
-                              : ""
-                          }
-                          ${
-                            ticket.class === "vip"
-                              ? "border-yellow-500 text-yellow-400"
-                              : ""
-                          }
-                          ${
-                            ticket.class === "premium"
-                              ? "border-purple-500 text-purple-400"
-                              : ""
-                          }
-                        `}
-                      >
-                        {ticket.class.toUpperCase()}
-                      </Badge>
-                      <span className="text-green-400 font-semibold">
-                        ${ticket.price}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-neutral-400">
-                        {ticket.available} available
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeTicket(ticket.id)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-neutral-400 text-sm mb-2">Includes:</p>
-                    <ul className="text-white text-sm space-y-1">
-                      {ticket.inclusions.map((inclusion, index) => (
-                        <li key={index} className="flex items-center">
-                          <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                          {inclusion}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              ))}
-              {tickets.length === 0 && (
-                <p className="text-neutral-400 text-center py-8">
-                  No tickets created yet
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <TicketsTab
+          tickets={tickets}
+          newTicket={newTicket}
+          setNewTicket={setNewTicket}
+          addTicket={addTicket}
+          removeTicket={removeTicket}
+          addInclusion={addInclusion}
+          updateInclusion={updateInclusion}
+          removeInclusion={removeInclusion}
+        />
       )}
     </div>
   );

@@ -5,18 +5,35 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Eye, Check, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Eye,
+  Check,
+  X,
+  CalendarDays,
+  Users,
+  DollarSign,
+  FileText,
+  ExternalLink,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase/browserClient";
-import { useSession } from "next-auth/react";
 type DBEvent = {
   id: string;
   name: string;
   status: string;
   start_datetime: string;
+  end_datetime?: string | null;
+  theme?: string | null;
   event_type?: string | null;
   additional_details?: string | null;
-  budget?: string | null; // optional if you add later
-  expected_attendees?: number | null; // optional if you add later
+  estimated_budget?: number | string | null;
+  estimated_participants?: number | null;
+  event_blueprint?: string | null;
   club_id?: string | null;
   clubs?: {
     name: string | null;
@@ -27,28 +44,25 @@ type DBEvent = {
 
 export function ManageSelfHostedEvents() {
   const [events, setEvents] = useState<DBEvent[]>([]);
-  const { data: session } = useSession();
-  const sessionUserId = (session as any)?.user?.id || null;
+  const [viewOpen, setViewOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<DBEvent | null>(null);
 
   const fetchEvents = async () => {
-    // Only self-hosted events for the current club (session user id)
-    if (!sessionUserId) {
-      setEvents([]);
-      return;
-    }
+    // Fetch ALL self-hosted events that are pending approval (global view)
     const { data, error } = await supabase
       .from("events")
       .select(
-        "id, name, status, start_datetime, event_type, additional_details, budget, expected_attendees, club_id, clubs(name, avatar_url, email)"
+        "id, name, status, start_datetime, end_datetime, theme, event_type, additional_details, estimated_budget, estimated_participants, event_blueprint, club_id, clubs(name, avatar_url, email)"
       )
       .eq("hosted", "self")
-      .eq("club_id", sessionUserId)
+      .eq("status", "pending_approval")
       .order("created_at", { ascending: false });
     if (error) {
       console.error("Failed to load events:", error.message);
       setEvents([]);
     } else {
-      setEvents(data as DBEvent[]);
+      // Supabase typing sometimes infers related tables as arrays; cast safely
+      setEvents(data as unknown as DBEvent[]);
     }
   };
 
@@ -57,7 +71,7 @@ export function ManageSelfHostedEvents() {
     const onFocus = () => fetchEvents();
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [sessionUserId]);
+  }, []);
 
   const handleApprove = async (eventId: string) => {
     const { error } = await supabase
@@ -96,11 +110,6 @@ export function ManageSelfHostedEvents() {
           </Badge>
         );
       case "pending":
-        return (
-          <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
-            Pending
-          </Badge>
-        );
       case "pending_approval":
         return (
           <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
@@ -129,9 +138,9 @@ export function ManageSelfHostedEvents() {
   };
 
   return (
-    <div className="p-6 bg-neutral-900 min-h-screen">
+    <div className="p-6 dark:from-purple-950 dark:via-neutral-900 dark:to-black bg-gradient-to-tl from-pink-300 via-white to-white min-h-screen">
       <div className="mb-6">
-        <h1 className="text-white text-lg font-medium mb-4">
+        <h1 className="text-lg font-medium mb-4">
           Club - Admin Dashboard - Manage Self Hosted Events
         </h1>
       </div>
@@ -204,13 +213,17 @@ export function ManageSelfHostedEvents() {
                         {new Date(event.start_datetime).toLocaleDateString()}
                       </div>
                       <div className="text-neutral-400 text-xs">
-                        {event.expected_attendees ?? 0} attendees
+                        {event.estimated_participants ?? 0} attendees
                       </div>
                     </div>
                   </td>
                   <td className="p-4">
                     <div className="text-white font-medium text-sm">
-                      {event.budget || "—"}
+                      {event.estimated_budget !== null &&
+                      event.estimated_budget !== undefined &&
+                      event.estimated_budget !== ""
+                        ? `₹${Number(event.estimated_budget).toLocaleString()}`
+                        : "—"}
                     </div>
                   </td>
                   <td className="p-4">{getStatusBadge(event.status)}</td>
@@ -219,8 +232,14 @@ export function ManageSelfHostedEvents() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300 hover:bg-neutral-700"
-                        disabled={event.status === "draft"}
+                        className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300 hover:bg-neutral-700 disabled:opacity-50"
+                        disabled={event.status !== "pending_approval"}
+                        onClick={() => {
+                          if (event.status === "pending_approval") {
+                            setSelectedEvent(event);
+                            setViewOpen(true);
+                          }
+                        }}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -253,6 +272,129 @@ export function ManageSelfHostedEvents() {
           </table>
         </div>
       </Card>
+
+      {/* View Event Modal */}
+      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+        <DialogContent className="max-w-[90vw] xl:max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">
+              Event Details
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Card>
+              <div className="p-4">
+                <div className="text-sm font-medium flex items-center gap-2 mb-3">
+                  <FileText className="h-4 w-4" /> Overview
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-sm text-neutral-400">Name</p>
+                    <p className="font-medium">{selectedEvent?.name ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-neutral-400">Theme</p>
+                    <p className="font-medium">{selectedEvent?.theme ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-neutral-400">Event Type</p>
+                    <Badge variant="secondary">
+                      {selectedEvent?.event_type ?? "—"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="p-4">
+                <div className="text-sm font-medium flex items-center gap-2 mb-3">
+                  <CalendarDays className="h-4 w-4" /> Schedule
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-sm text-neutral-400">Start</p>
+                    <p className="font-medium">
+                      {selectedEvent?.start_datetime
+                        ? new Date(
+                            selectedEvent.start_datetime
+                          ).toLocaleString()
+                        : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-neutral-400">End</p>
+                    <p className="font-medium">
+                      {selectedEvent?.end_datetime
+                        ? new Date(selectedEvent.end_datetime).toLocaleString()
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="p-4">
+                <div className="text-sm font-medium flex items-center gap-2 mb-3">
+                  <Users className="h-4 w-4" /> Participants
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-neutral-400">Estimated</span>
+                    <span className="font-medium">
+                      {selectedEvent?.estimated_participants ?? "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Budget */}
+          <Card className="mt-4">
+            <div className="p-4">
+              <div className="text-sm font-medium flex items-center gap-2 mb-3">
+                <DollarSign className="h-4 w-4" /> Budget
+              </div>
+              <div className="text-2xl font-bold text-green-500">
+                {selectedEvent?.estimated_budget !== null &&
+                selectedEvent?.estimated_budget !== undefined &&
+                selectedEvent?.estimated_budget !== ""
+                  ? `₹${Number(
+                      selectedEvent.estimated_budget
+                    ).toLocaleString()}`
+                  : "—"}
+              </div>
+            </div>
+          </Card>
+
+          {/* Event Blueprint */}
+          <Card className="mt-4">
+            <div className="p-4">
+              <div className="text-sm font-medium flex items-center gap-2 mb-3">
+                <FileText className="h-4 w-4" /> Event Blueprint
+              </div>
+              {selectedEvent?.event_blueprint ? (
+                <Button variant="outline" size="sm" asChild>
+                  <a
+                    href={selectedEvent.event_blueprint}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open Blueprint
+                  </a>
+                </Button>
+              ) : (
+                <p className="text-sm text-neutral-400">No file uploaded</p>
+              )}
+            </div>
+          </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

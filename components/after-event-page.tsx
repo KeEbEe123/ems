@@ -1,30 +1,15 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle, Upload, FileText, Share2, Calendar, AlertCircle, X } from "lucide-react";
+import { Upload, FileText, Share2 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { supabase } from "@/lib/supabase/browserClient";
 import { toast } from "sonner";
+import StepperHeader from "@/components/after-event/StepperHeader";
+import ReportStepCard from "@/components/after-event/ReportStepCard";
+import UploadsStepCard from "@/components/after-event/UploadsStepCard";
+import SocialStepCard from "@/components/after-event/SocialStepCard";
+import CompletionCard from "@/components/after-event/CompletionCard";
 
 interface FormData {
   programType: string;
@@ -67,38 +52,40 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {}
+  );
   const [reportId, setReportId] = useState<string | null>(null);
-  
+
   // Form data state
   const [formData, setFormData] = useState<FormData>({
-    programType: '',
-    otherProgramType: '',
-    programTheme: '',
+    programType: "",
+    otherProgramType: "",
+    programTheme: "",
     duration: 0,
-    startDate: '',
-    endDate: '',
+    startDate: "",
+    endDate: "",
     studentParticipants: 0,
     facultyParticipants: 0,
     externalParticipants: 0,
     expenditure: 0,
-    remark: '',
-    sessionDelivery: '',
-    activityLead: '',
-    objective: '',
-    benefits: '',
-    twitterUrl: '',
-    instagramUrl: '',
-    linkedinUrl: ''
+    remark: "",
+    sessionDelivery: "",
+    activityLead: "",
+    objective: "",
+    benefits: "",
+    twitterUrl: "",
+    instagramUrl: "",
+    linkedinUrl: "",
   });
-  
+
   // File uploads state
   const [fileUploads, setFileUploads] = useState<FileUploads>({
     eventImages: [],
     eventVideo: null,
-    eventReport: null
+    eventReport: null,
   });
-  
+
   // File input refs
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -112,16 +99,16 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
 
         // Fetch the latest report submitted by this user. If your schema adds event_id later, filter by eventId as well.
         const { data, error } = await supabase
-          .from('after_event_reports')
-          .select('*')
-          .eq('submitted_by', sessionUserId)
-          .eq('event_id', eventId)
-          .order('created_at', { ascending: false })
+          .from("after_event_reports")
+          .select("*")
+          .eq("submitted_by", sessionUserId)
+          .eq("event_id", eventId)
+          .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
         if (error) {
-          console.error('Error loading existing report:', error);
+          console.error("Error loading existing report:", error);
           return;
         }
 
@@ -129,24 +116,24 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
           setReportId(data.id);
           // Restore form data
           setFormData({
-            programType: data.program_type || '',
-            otherProgramType: data.other_program_type || '',
-            programTheme: data.program_theme || '',
+            programType: data.program_type || "",
+            otherProgramType: data.other_program_type || "",
+            programTheme: data.program_theme || "",
             duration: data.duration_hours || 0,
-            startDate: data.start_date || '',
-            endDate: data.end_date || '',
+            startDate: data.start_date || "",
+            endDate: data.end_date || "",
             studentParticipants: data.student_participants || 0,
             facultyParticipants: data.faculty_participants || 0,
             externalParticipants: data.external_participants || 0,
             expenditure: Number(data.expenditure_amount || 0),
-            remark: data.remark || '',
-            sessionDelivery: data.session_delivery_mode || '',
-            activityLead: data.activity_lead_by || '',
-            objective: data.objective || '',
-            benefits: data.benefits || '',
-            twitterUrl: data.twitter_url || '',
-            instagramUrl: data.instagram_url || '',
-            linkedinUrl: data.linkedin_url || '',
+            remark: data.remark || "",
+            sessionDelivery: data.session_delivery_mode || "",
+            activityLead: data.activity_lead_by || "",
+            objective: data.objective || "",
+            benefits: data.benefits || "",
+            twitterUrl: data.twitter_url || "",
+            instagramUrl: data.instagram_url || "",
+            linkedinUrl: data.linkedin_url || "",
           });
 
           // Restore steps based on booleans
@@ -163,74 +150,86 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
           else setCurrentStep(2);
         }
       } catch (e) {
-        console.error('Unexpected error loading report:', e);
+        console.error("Unexpected error loading report:", e);
       }
     };
 
     loadExistingReport();
   }, [eventId, sessionUserId]);
-  
+
   // Social media checkboxes
   const [socialMediaChecked, setSocialMediaChecked] = useState({
     twitter: false,
     instagram: false,
-    linkedin: false
+    linkedin: false,
   });
 
   // Validation functions
   const validateStep1 = (): boolean => {
     const errors: ValidationErrors = {};
-    
-    if (!formData.programType) errors.programType = 'Program type is required';
-    if (formData.programType === 'other' && !formData.otherProgramType) {
-      errors.otherProgramType = 'Please specify other program type';
+
+    if (!formData.programType) errors.programType = "Program type is required";
+    if (formData.programType === "other" && !formData.otherProgramType) {
+      errors.otherProgramType = "Please specify other program type";
     }
-    if (!formData.programTheme) errors.programTheme = 'Program theme is required';
-    if (!formData.duration || formData.duration <= 0) errors.duration = 'Duration must be greater than 0';
-    if (!formData.startDate) errors.startDate = 'Start date is required';
-    if (!formData.endDate) errors.endDate = 'End date is required';
-    if (formData.startDate && formData.endDate && new Date(formData.startDate) > new Date(formData.endDate)) {
-      errors.endDate = 'End date must be after start date';
+    if (!formData.programTheme)
+      errors.programTheme = "Program theme is required";
+    if (!formData.duration || formData.duration <= 0)
+      errors.duration = "Duration must be greater than 0";
+    if (!formData.startDate) errors.startDate = "Start date is required";
+    if (!formData.endDate) errors.endDate = "End date is required";
+    if (
+      formData.startDate &&
+      formData.endDate &&
+      new Date(formData.startDate) > new Date(formData.endDate)
+    ) {
+      errors.endDate = "End date must be after start date";
     }
     if (!formData.studentParticipants || formData.studentParticipants < 50) {
-      errors.studentParticipants = 'Minimum 50 student participants required';
+      errors.studentParticipants = "Minimum 50 student participants required";
     }
     if (!formData.facultyParticipants || formData.facultyParticipants < 0) {
-      errors.facultyParticipants = 'Faculty participants must be 0 or more';
+      errors.facultyParticipants = "Faculty participants must be 0 or more";
     }
-    if (!formData.sessionDelivery) errors.sessionDelivery = 'Session delivery mode is required';
-    if (!formData.activityLead) errors.activityLead = 'Activity lead is required';
-    if (!formData.objective.trim()) errors.objective = 'Objective is required';
-    if (!formData.benefits.trim()) errors.benefits = 'Benefits description is required';
-    
+    if (!formData.sessionDelivery)
+      errors.sessionDelivery = "Session delivery mode is required";
+    if (!formData.activityLead)
+      errors.activityLead = "Activity lead is required";
+    if (!formData.objective.trim()) errors.objective = "Objective is required";
+    if (!formData.benefits.trim())
+      errors.benefits = "Benefits description is required";
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
-  
+
   const validateStep2 = (): boolean => {
     const errors: ValidationErrors = {};
-    
+
     if (fileUploads.eventImages.length === 0) {
-      errors.eventImages = 'At least one event image is required';
+      errors.eventImages = "At least one event image is required";
     }
     if (fileUploads.eventImages.length > 3) {
-      errors.eventImages = 'Maximum 3 images allowed';
+      errors.eventImages = "Maximum 3 images allowed";
     }
     if (!fileUploads.eventReport) {
-      errors.eventReport = 'Event report is required';
+      errors.eventReport = "Event report is required";
     }
-    
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
-  
+
   // File upload handlers
-  const handleFileUpload = (type: 'images' | 'video' | 'report', files: FileList | null) => {
+  const handleFileUpload = (
+    type: "images" | "video" | "report",
+    files: FileList | null
+  ) => {
     if (!files) return;
-    
+
     const errors: ValidationErrors = {};
-    
-    if (type === 'images') {
+
+    if (type === "images") {
       const validFiles: File[] = [];
       for (let i = 0; i < Math.min(files.length, 3); i++) {
         const file = files[i];
@@ -238,72 +237,91 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
           errors.eventImages = `Image ${file.name} exceeds 3MB limit`;
           continue;
         }
-        if (!file.type.startsWith('image/')) {
+        if (!file.type.startsWith("image/")) {
           errors.eventImages = `${file.name} is not a valid image file`;
           continue;
         }
         validFiles.push(file);
       }
-      setFileUploads(prev => ({ ...prev, eventImages: validFiles }));
-    } else if (type === 'video') {
+      setFileUploads((prev) => ({ ...prev, eventImages: validFiles }));
+    } else if (type === "video") {
       const file = files[0];
       if (file.size > 200 * 1024 * 1024) {
-        errors.eventVideo = 'Video exceeds 200MB limit';
-      } else if (!file.type.startsWith('video/')) {
-        errors.eventVideo = 'Invalid video file format';
+        errors.eventVideo = "Video exceeds 200MB limit";
+      } else if (!file.type.startsWith("video/")) {
+        errors.eventVideo = "Invalid video file format";
       } else {
-        setFileUploads(prev => ({ ...prev, eventVideo: file }));
+        setFileUploads((prev) => ({ ...prev, eventVideo: file }));
       }
-    } else if (type === 'report') {
+    } else if (type === "report") {
       const file = files[0];
       if (file.size > 200 * 1024) {
-        errors.eventReport = 'Report exceeds 200KB limit';
-      } else if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type)) {
-        errors.eventReport = 'Report must be PDF or Word document';
+        errors.eventReport = "Report exceeds 200KB limit";
+      } else if (
+        ![
+          "application/pdf",
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ].includes(file.type)
+      ) {
+        errors.eventReport = "Report must be PDF or Word document";
       } else {
-        setFileUploads(prev => ({ ...prev, eventReport: file }));
+        setFileUploads((prev) => ({ ...prev, eventReport: file }));
       }
     }
-    
-    setValidationErrors(prev => ({ ...prev, ...errors }));
+
+    setValidationErrors((prev) => ({ ...prev, ...errors }));
   };
-  
+
   // Sanitize filename for storage
   const sanitizeFilename = (filename: string): string => {
     // Remove special characters and replace with safe alternatives
     return filename
-      .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
-      .replace(/_{2,}/g, '_') // Replace multiple underscores with single
-      .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
+      .replace(/[^a-zA-Z0-9.-]/g, "_") // Replace special chars with underscore
+      .replace(/_{2,}/g, "_") // Replace multiple underscores with single
+      .replace(/^_+|_+$/g, "") // Remove leading/trailing underscores
       .toLowerCase();
   };
-  
+
   // Upload file to Supabase storage using anon key (browser client)
-  const uploadFile = async (file: File, bucket: string, path: string): Promise<string> => {
+  const uploadFile = async (
+    file: File,
+    bucket: string,
+    path: string
+  ): Promise<string> => {
     const sanitizedPath = sanitizeFilename(path);
-    console.debug('[upload] start', { bucket, path: sanitizedPath, name: file.name, size: file.size, type: file.type });
+    console.debug("[upload] start", {
+      bucket,
+      path: sanitizedPath,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    });
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(sanitizedPath, file, {
-        cacheControl: '3600',
+        cacheControl: "3600",
         upsert: false,
-        contentType: (file as any).type || 'application/octet-stream',
+        contentType: (file as any).type || "application/octet-stream",
       });
     if (error) {
-      console.error('[upload] supabase error', error);
+      console.error("[upload] supabase error", error);
       throw error;
     }
     const { data: pub } = supabase.storage.from(bucket).getPublicUrl(data.path);
-    console.debug('[upload] success', { path: data.path, publicUrl: pub.publicUrl });
-    if (!pub.publicUrl) throw new Error('Failed to get public URL');
+    console.debug("[upload] success", {
+      path: data.path,
+      publicUrl: pub.publicUrl,
+    });
+    if (!pub.publicUrl) throw new Error("Failed to get public URL");
     return pub.publicUrl;
   };
-  
+
   // Submit form data to database
   const upsertReport = async (fields: Record<string, any>) => {
     if (!sessionUserId) {
-      console.error('No user in NextAuth session');
-      throw new Error('User not authenticated');
+      console.error("No user in NextAuth session");
+      throw new Error("User not authenticated");
     }
 
     const payload = {
@@ -315,23 +333,23 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
 
     if (reportId) {
       const { error } = await supabase
-        .from('after_event_reports')
+        .from("after_event_reports")
         .update(payload)
-        .eq('id', reportId);
+        .eq("id", reportId);
       if (error) throw error;
       return reportId;
     } else {
       const { data, error } = await supabase
-        .from('after_event_reports')
+        .from("after_event_reports")
         .insert(payload)
-        .select('id')
+        .select("id")
         .single();
       if (error) throw error;
       setReportId(data.id);
       return data.id as string;
     }
   };
-  
+
   const steps = [
     {
       id: 0,
@@ -355,12 +373,15 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
 
   const completeStep = async (stepId: number) => {
     if (isSubmitting) return;
-    
+
     setIsSubmitting(true);
-    
+
     try {
       if (stepId === 0) {
-        if (!validateStep1()) { setIsSubmitting(false); return; }
+        if (!validateStep1()) {
+          setIsSubmitting(false);
+          return;
+        }
         await upsertReport({
           program_type: formData.programType,
           other_program_type: formData.otherProgramType || null,
@@ -379,39 +400,52 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
           benefits: formData.benefits,
           report_submitted: true,
         });
-        toast.success('Report saved!');
+        toast.success("Report saved!");
       } else if (stepId === 1) {
-        if (!validateStep2()) { setIsSubmitting(false); return; }
+        if (!validateStep2()) {
+          setIsSubmitting(false);
+          return;
+        }
         try {
           // Upload images
           const imageUrls: string[] = [];
           for (let i = 0; i < fileUploads.eventImages.length; i++) {
             const file = fileUploads.eventImages[i];
-            const ext = file.name.split('.').pop() || 'jpg';
+            const ext = file.name.split(".").pop() || "jpg";
             const path = `${eventId}/image_${Date.now()}_${i}.${ext}`;
-            const url = await uploadFile(file, 'event-images', path);
+            const url = await uploadFile(file, "event-images", path);
             imageUrls.push(url);
           }
 
           // Upload video if exists
           let videoUrl: string | null = null;
           if (fileUploads.eventVideo) {
-            const ext = fileUploads.eventVideo.name.split('.').pop() || 'mp4';
+            const ext = fileUploads.eventVideo.name.split(".").pop() || "mp4";
             const path = `${eventId}/video_${Date.now()}.${ext}`;
-            videoUrl = await uploadFile(fileUploads.eventVideo, 'event-videos', path);
+            videoUrl = await uploadFile(
+              fileUploads.eventVideo,
+              "event-videos",
+              path
+            );
           }
 
           // Upload report (required)
           let reportUrl: string | null = null;
           if (fileUploads.eventReport) {
-            const ext = fileUploads.eventReport.name.split('.').pop() || 'pdf';
+            const ext = fileUploads.eventReport.name.split(".").pop() || "pdf";
             const path = `${eventId}/report_${Date.now()}.${ext}`;
-            reportUrl = await uploadFile(fileUploads.eventReport, 'event-reports', path);
+            reportUrl = await uploadFile(
+              fileUploads.eventReport,
+              "event-reports",
+              path
+            );
           }
 
           // Ensure required uploads exist
           if (imageUrls.length === 0 || !reportUrl) {
-            toast.error('Upload failed. Please ensure at least one image and a report are uploaded.');
+            toast.error(
+              "Upload failed. Please ensure at least one image and a report are uploaded."
+            );
             setIsSubmitting(false);
             return;
           }
@@ -423,10 +457,10 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
             media_uploaded: true,
           });
 
-          toast.success('Files uploaded and saved!');
+          toast.success("Files uploaded and saved!");
         } catch (err) {
-          console.error('Upload/save failed:', err);
-          toast.error('Upload failed. Please try again.');
+          console.error("Upload/save failed:", err);
+          toast.error("Upload failed. Please try again.");
           setIsSubmitting(false);
           return;
         }
@@ -435,11 +469,15 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
           twitter_url: formData.twitterUrl || null,
           instagram_url: formData.instagramUrl || null,
           linkedin_url: formData.linkedinUrl || null,
-          social_media_promoted: !!(formData.twitterUrl || formData.instagramUrl || formData.linkedinUrl),
+          social_media_promoted: !!(
+            formData.twitterUrl ||
+            formData.instagramUrl ||
+            formData.linkedinUrl
+          ),
         });
-        toast.success('Social media links saved!');
+        toast.success("Social media links saved!");
       }
-      
+
       if (!completedSteps.includes(stepId)) {
         setCompletedSteps([...completedSteps, stepId]);
       }
@@ -447,31 +485,31 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
         setCurrentStep(stepId + 1);
       }
     } catch (error) {
-      console.error('Error completing step:', error);
-      toast.error('An error occurred. Please try again.');
+      console.error("Error completing step:", error);
+      toast.error("An error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   const updateFormData = (field: keyof FormData, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear validation error when user starts typing
     if (validationErrors[field]) {
-      setValidationErrors(prev => ({ ...prev, [field]: '' }));
+      setValidationErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
-  
-  const removeFile = (type: 'images' | 'video' | 'report', index?: number) => {
-    if (type === 'images' && typeof index === 'number') {
-      setFileUploads(prev => ({
+
+  const removeFile = (type: "images" | "video" | "report", index?: number) => {
+    if (type === "images" && typeof index === "number") {
+      setFileUploads((prev) => ({
         ...prev,
-        eventImages: prev.eventImages.filter((_, i) => i !== index)
+        eventImages: prev.eventImages.filter((_, i) => i !== index),
       }));
-    } else if (type === 'video') {
-      setFileUploads(prev => ({ ...prev, eventVideo: null }));
-    } else if (type === 'report') {
-      setFileUploads(prev => ({ ...prev, eventReport: null }));
+    } else if (type === "video") {
+      setFileUploads((prev) => ({ ...prev, eventVideo: null }));
+    } else if (type === "report") {
+      setFileUploads((prev) => ({ ...prev, eventReport: null }));
     }
   };
 
@@ -485,712 +523,57 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
         <h1 className="text-white text-lg font-medium mb-8">
           Club - Event Dashboard - After Event Page
         </h1>
-
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            {steps.map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <div key={step.id} className="flex items-center">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
-                        isStepCompleted(step.id)
-                          ? "bg-green-500 border-green-500 text-white"
-                          : isStepActive(step.id)
-                          ? "bg-orange-400 border-orange-400 text-white"
-                          : isStepAccessible(step.id)
-                          ? "border-gray-400 text-gray-400"
-                          : "border-gray-600 text-gray-600"
-                      }`}
-                    >
-                      {isStepCompleted(step.id) ? (
-                        <CheckCircle className="w-5 h-5" />
-                      ) : (
-                        <Icon className="w-5 h-5" />
-                      )}
-                    </div>
-                    <div className="mt-2 text-center">
-                      <p
-                        className={`text-xs font-medium ${
-                          isStepActive(step.id)
-                            ? "text-orange-400"
-                            : isStepCompleted(step.id)
-                            ? "text-green-400"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {step.title}
-                      </p>
-                    </div>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div
-                      className={`h-0.5 w-24 mx-4 transition-colors ${
-                        isStepCompleted(step.id)
-                          ? "bg-green-500"
-                          : "bg-gray-600"
-                      }`}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <StepperHeader
+          steps={steps}
+          isStepCompleted={isStepCompleted}
+          isStepActive={isStepActive}
+        />
       </div>
 
       <div className="space-y-6">
-        {/* Step 1: Event Report Submission */}
         {isStepAccessible(0) && (
-          <Card
-            className={`bg-neutral-900 border-neutral-800 ${
-              !isStepActive(0) && isStepCompleted(0) ? "opacity-60" : ""
-            }`}
-          >
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Event Report Submission
-                {isStepCompleted(0) && (
-                  <Badge className="bg-green-500 text-white">Completed</Badge>
-                )}
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Provide a comprehensive summary of the event
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="program-type" className="text-white">
-                    Program Type *
-                  </Label>
-                  <Select value={formData.programType} onValueChange={(value) => updateFormData('programType', value)}>
-                    <SelectTrigger className={`bg-neutral-800 border-neutral-700 text-white mt-2 ${validationErrors.programType ? 'border-red-500' : ''}`}>
-                      <SelectValue placeholder="Select program type" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-neutral-800 border-neutral-700">
-                      <SelectItem value="workshop">Workshop</SelectItem>
-                      <SelectItem value="seminar">Seminar</SelectItem>
-                      <SelectItem value="conference">Conference</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {validationErrors.programType && (
-                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {validationErrors.programType}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="other-program" className="text-white">
-                    Other
-                  </Label>
-                  <Input
-                    id="other-program"
-                    value={formData.otherProgramType}
-                    onChange={(e) => updateFormData('otherProgramType', e.target.value)}
-                    placeholder="Specify if other"
-                    className={`bg-neutral-800 border-neutral-700 text-white mt-2 ${validationErrors.otherProgramType ? 'border-red-500' : ''}`}
-                    disabled={formData.programType !== 'other'}
-                  />
-                  {validationErrors.otherProgramType && (
-                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {validationErrors.otherProgramType}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="program-theme" className="text-white">
-                    Program Theme *
-                  </Label>
-                  <Select value={formData.programTheme} onValueChange={(value) => updateFormData('programTheme', value)}>
-                    <SelectTrigger className={`bg-neutral-800 border-neutral-700 text-white mt-2 ${validationErrors.programTheme ? 'border-red-500' : ''}`}>
-                      <SelectValue placeholder="Select theme" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-neutral-800 border-neutral-700">
-                      <SelectItem value="technology">Technology</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                      <SelectItem value="education">Education</SelectItem>
-                      <SelectItem value="health">Health</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {validationErrors.programTheme && (
-                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {validationErrors.programTheme}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="duration" className="text-white">
-                    Duration of the activity (in hours) *
-                  </Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    value={formData.duration || ''}
-                    onChange={(e) => updateFormData('duration', parseInt(e.target.value) || 0)}
-                    placeholder="4"
-                    className={`bg-neutral-800 border-neutral-700 text-white mt-2 ${validationErrors.duration ? 'border-red-500' : ''}`}
-                  />
-                  {validationErrors.duration && (
-                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {validationErrors.duration}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="start-date" className="text-white">
-                    Start Date *
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="start-date"
-                      type="date"
-                      value={formData.startDate}
-                      onChange={(e) => updateFormData('startDate', e.target.value)}
-                      className={`bg-neutral-800 border-neutral-700 text-white mt-2 ${validationErrors.startDate ? 'border-red-500' : ''}`}
-                    />
-                    <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="end-date" className="text-white">
-                    End Date *
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="end-date"
-                      type="date"
-                      value={formData.endDate}
-                      onChange={(e) => updateFormData('endDate', e.target.value)}
-                      className={`bg-neutral-800 border-neutral-700 text-white mt-2 ${validationErrors.endDate ? 'border-red-500' : ''}`}
-                    />
-                    <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="student-participants" className="text-white">
-                    Number of Student Participants (Minimum 50 Students) *
-                  </Label>
-                  <Input
-                    id="student-participants"
-                    type="number"
-                    min="50"
-                    value={formData.studentParticipants || ''}
-                    onChange={(e) => updateFormData('studentParticipants', parseInt(e.target.value) || 0)}
-                    placeholder="75"
-                    className={`bg-neutral-800 border-neutral-700 text-white mt-2 ${validationErrors.studentParticipants ? 'border-red-500' : ''}`}
-                  />
-                  {validationErrors.studentParticipants && (
-                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {validationErrors.studentParticipants}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="faculty-participants" className="text-white">
-                    Number of Faculty Participants *
-                  </Label>
-                  <Input
-                    id="faculty-participants"
-                    type="number"
-                    value={formData.facultyParticipants || ''}
-                    onChange={(e) => updateFormData('facultyParticipants', parseInt(e.target.value) || 0)}
-                    placeholder="10"
-                    className={`bg-neutral-800 border-neutral-700 text-white mt-2 ${validationErrors.facultyParticipants ? 'border-red-500' : ''}`}
-                  />
-                  {validationErrors.facultyParticipants && (
-                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {validationErrors.facultyParticipants}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="external-participants" className="text-white">
-                    Number of External Participants, if any
-                  </Label>
-                  <Input
-                    id="external-participants"
-                    type="number"
-                    value={formData.externalParticipants || ''}
-                    onChange={(e) => updateFormData('externalParticipants', parseInt(e.target.value) || 0)}
-                    placeholder="5"
-                    className="bg-neutral-800 border-neutral-700 text-white mt-2"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="expenditure" className="text-white">
-                    Expenditure Amount, if any
-                  </Label>
-                  <Input
-                    id="expenditure"
-                    type="number"
-                    value={formData.expenditure || ''}
-                    onChange={(e) => updateFormData('expenditure', parseFloat(e.target.value) || 0)}
-                    placeholder="15000"
-                    className="bg-neutral-800 border-neutral-700 text-white mt-2"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="remark" className="text-white">
-                    Remark
-                  </Label>
-                  <Textarea
-                    id="remark"
-                    value={formData.remark}
-                    onChange={(e) => updateFormData('remark', e.target.value)}
-                    placeholder="Additional remarks..."
-                    className="bg-neutral-800 border-neutral-700 text-white mt-2"
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="session-delivery" className="text-white">
-                    Mode of Session delivery *
-                  </Label>
-                  <Select value={formData.sessionDelivery} onValueChange={(value) => updateFormData('sessionDelivery', value)}>
-                    <SelectTrigger className={`bg-neutral-800 border-neutral-700 text-white mt-2 ${validationErrors.sessionDelivery ? 'border-red-500' : ''}`}>
-                      <SelectValue placeholder="Select delivery mode" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-neutral-800 border-neutral-700">
-                      <SelectItem value="online">Online</SelectItem>
-                      <SelectItem value="offline">Offline</SelectItem>
-                      <SelectItem value="hybrid">Hybrid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {validationErrors.sessionDelivery && (
-                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {validationErrors.sessionDelivery}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="activity-lead" className="text-white">
-                  Activity Lead By *
-                </Label>
-                <Select value={formData.activityLead} onValueChange={(value) => updateFormData('activityLead', value)}>
-                  <SelectTrigger className={`bg-neutral-800 border-neutral-700 text-white mt-2 ${validationErrors.activityLead ? 'border-red-500' : ''}`}>
-                    <SelectValue placeholder="Select activity lead" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-neutral-800 border-neutral-700">
-                    <SelectItem value="faculty">Faculty</SelectItem>
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="external">External Expert</SelectItem>
-                  </SelectContent>
-                </Select>
-                {validationErrors.activityLead && (
-                  <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {validationErrors.activityLead}
-                  </p>
-                )}
-              </div>
-
-              {/* Overview Section */}
-              <div className="border-t border-neutral-700 pt-6">
-                <h3 className="text-white text-lg font-medium mb-4">
-                  Overview
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="objective" className="text-white">
-                      Objective *
-                    </Label>
-                    <Textarea
-                      id="objective"
-                      value={formData.objective}
-                      onChange={(e) => updateFormData('objective', e.target.value)}
-                      placeholder="Describe the main objectives..."
-                      className={`bg-neutral-800 border-neutral-700 text-white mt-2 ${validationErrors.objective ? 'border-red-500' : ''}`}
-                      rows={4}
-                    />
-                    {validationErrors.objective && (
-                      <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        {validationErrors.objective}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="benefits" className="text-white">
-                      Benefit in terms of learning/skill/knowledge obtained *
-                    </Label>
-                    <Textarea
-                      id="benefits"
-                      value={formData.benefits}
-                      onChange={(e) => updateFormData('benefits', e.target.value)}
-                      placeholder="Describe the benefits gained..."
-                      className={`bg-neutral-800 border-neutral-700 text-white mt-2 ${validationErrors.benefits ? 'border-red-500' : ''}`}
-                      rows={4}
-                    />
-                    {validationErrors.benefits && (
-                      <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        {validationErrors.benefits}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {!isStepCompleted(0) && (
-                <Button
-                  onClick={() => completeStep(0)}
-                  disabled={isSubmitting}
-                  className="bg-orange-400 hover:bg-orange-500 text-white disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Report'}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <ReportStepCard
+            isActive={isStepActive(0)}
+            isCompleted={isStepCompleted(0)}
+            formData={formData}
+            updateFormData={updateFormData}
+            validationErrors={validationErrors}
+            isSubmitting={isSubmitting}
+            completeStep={completeStep}
+          />
         )}
 
-        {/* Step 2: Pictures and Videos Upload */}
         {isStepAccessible(1) && (
-          <Card
-            className={`bg-neutral-900 border-neutral-800 ${
-              !isStepActive(1) && isStepCompleted(1) ? "opacity-60" : ""
-            }`}
-          >
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Upload className="w-5 h-5" />
-                Pictures and Videos Upload
-                {isStepCompleted(1) && (
-                  <Badge className="bg-green-500 text-white">Completed</Badge>
-                )}
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Upload event media and documentation
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-white">Videos/url (Max 200MB)</Label>
-                  <input
-                    ref={videoInputRef}
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => handleFileUpload('video', e.target.files)}
-                    className="hidden"
-                  />
-                  <div className={`border-2 border-dashed rounded-lg p-4 text-center mt-2 ${
-                    validationErrors.eventVideo ? 'border-red-500' : 'border-neutral-700'
-                  }`}>
-                    {fileUploads.eventVideo ? (
-                      <div className="flex items-center justify-between bg-neutral-800 p-2 rounded">
-                        <span className="text-white text-sm">{fileUploads.eventVideo.name}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile('video')}
-                          className="text-red-400 hover:text-red-300"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-400 text-sm">
-                          Choose video file or drag and drop
-                        </p>
-                        <Button
-                          variant="outline"
-                          onClick={() => videoInputRef.current?.click()}
-                          className="mt-2 border-neutral-700 text-white hover:bg-neutral-800 bg-transparent text-xs"
-                        >
-                          Browse
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  {validationErrors.eventVideo && (
-                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {validationErrors.eventVideo}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <Label className="text-white">Photographs * (Max 3 images, 3MB each)</Label>
-                  <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => handleFileUpload('images', e.target.files)}
-                    className="hidden"
-                  />
-                  <div className={`border-2 border-dashed rounded-lg p-4 text-center mt-2 ${
-                    validationErrors.eventImages ? 'border-red-500' : 'border-neutral-700'
-                  }`}>
-                    {fileUploads.eventImages.length > 0 ? (
-                      <div className="space-y-2">
-                        {fileUploads.eventImages.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between bg-neutral-800 p-2 rounded">
-                            <span className="text-white text-sm">{file.name}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeFile('images', index)}
-                              className="text-red-400 hover:text-red-300"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))}
-                        {fileUploads.eventImages.length < 3 && (
-                          <Button
-                            variant="outline"
-                            onClick={() => imageInputRef.current?.click()}
-                            className="mt-2 border-neutral-700 text-white hover:bg-neutral-800 bg-transparent text-xs"
-                          >
-                            Add More Images
-                          </Button>
-                        )}
-                      </div>
-                    ) : (
-                      <>
-                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-400 text-sm">
-                          Choose image files or drag and drop
-                        </p>
-                        <Button
-                          variant="outline"
-                          onClick={() => imageInputRef.current?.click()}
-                          className="mt-2 border-neutral-700 text-white hover:bg-neutral-800 bg-transparent text-xs"
-                        >
-                          Browse
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  {validationErrors.eventImages && (
-                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {validationErrors.eventImages}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <Label className="text-white">
-                    Upload Report (Word/PDF only) * (Max 200KB)
-                  </Label>
-                  <input
-                    ref={reportInputRef}
-                    type="file"
-                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    onChange={(e) => handleFileUpload('report', e.target.files)}
-                    className="hidden"
-                  />
-                  <div className={`border-2 border-dashed rounded-lg p-4 text-center mt-2 ${
-                    validationErrors.eventReport ? 'border-red-500' : 'border-neutral-700'
-                  }`}>
-                    {fileUploads.eventReport ? (
-                      <div className="flex items-center justify-between bg-neutral-800 p-2 rounded">
-                        <span className="text-white text-sm">{fileUploads.eventReport.name}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile('report')}
-                          className="text-red-400 hover:text-red-300"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-400 text-sm">
-                          Choose PDF or Word document
-                        </p>
-                        <Button
-                          variant="outline"
-                          onClick={() => reportInputRef.current?.click()}
-                          className="mt-2 border-neutral-700 text-white hover:bg-neutral-800 bg-transparent text-xs"
-                        >
-                          Browse
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  {validationErrors.eventReport && (
-                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {validationErrors.eventReport}
-                    </p>
-                  )}
-                </div>
-              </div>
-              {!isStepCompleted(1) && (
-                <Button
-                  onClick={() => completeStep(1)}
-                  disabled={isSubmitting}
-                  className="bg-orange-400 hover:bg-orange-500 text-white disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Uploading...' : 'Confirm Upload'}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <UploadsStepCard
+            isActive={isStepActive(1)}
+            isCompleted={isStepCompleted(1)}
+            isSubmitting={isSubmitting}
+            fileUploads={fileUploads}
+            imageInputRef={imageInputRef}
+            videoInputRef={videoInputRef}
+            reportInputRef={reportInputRef}
+            handleFileUpload={handleFileUpload}
+            removeFile={removeFile}
+            validationErrors={validationErrors}
+            completeStep={completeStep}
+          />
         )}
 
-        {/* Step 3: Promotion in Social Media */}
         {isStepAccessible(2) && (
-          <Card
-            className={`bg-neutral-900 border-neutral-800 ${
-              !isStepActive(2) && isStepCompleted(2) ? "opacity-60" : ""
-            }`}
-          >
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Share2 className="w-5 h-5" />
-                Promotion in Social Media
-                {isStepCompleted(2) && (
-                  <Badge className="bg-green-500 text-white">Completed</Badge>
-                )}
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Promote your event success on social media platforms
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-gray-300 text-sm mb-4">
-                Promote on any social media
-              </p>
-
-              <div className="border border-neutral-700 rounded-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-purple-600 to-purple-500 p-3">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-white font-medium text-center">
-                      Social Media
-                    </div>
-                    <div className="text-white font-medium text-center col-span-2">
-                      Url
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-neutral-800">
-                  <div className="grid grid-cols-3 gap-4 p-3 border-b border-neutral-700">
-                    <div className="flex items-center gap-2">
-                      <Checkbox 
-                        checked={socialMediaChecked.twitter}
-                        onCheckedChange={(checked) => setSocialMediaChecked(prev => ({ ...prev, twitter: !!checked }))}
-                        className="border-neutral-600" 
-                      />
-                      <span className="text-white">Twitter</span>
-                    </div>
-                    <div className="col-span-2">
-                      <Input
-                        value={formData.twitterUrl}
-                        onChange={(e) => updateFormData('twitterUrl', e.target.value)}
-                        placeholder="Twitter URL"
-                        disabled={!socialMediaChecked.twitter}
-                        className="bg-neutral-700 border-neutral-600 text-white disabled:opacity-50"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 p-3 border-b border-neutral-700">
-                    <div className="flex items-center gap-2">
-                      <Checkbox 
-                        checked={socialMediaChecked.instagram}
-                        onCheckedChange={(checked) => setSocialMediaChecked(prev => ({ ...prev, instagram: !!checked }))}
-                        className="border-neutral-600" 
-                      />
-                      <span className="text-white">Instagram</span>
-                    </div>
-                    <div className="col-span-2">
-                      <Input
-                        value={formData.instagramUrl}
-                        onChange={(e) => updateFormData('instagramUrl', e.target.value)}
-                        placeholder="Instagram URL"
-                        disabled={!socialMediaChecked.instagram}
-                        className="bg-neutral-700 border-neutral-600 text-white disabled:opacity-50"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 p-3">
-                    <div className="flex items-center gap-2">
-                      <Checkbox 
-                        checked={socialMediaChecked.linkedin}
-                        onCheckedChange={(checked) => setSocialMediaChecked(prev => ({ ...prev, linkedin: !!checked }))}
-                        className="border-neutral-600" 
-                      />
-                      <span className="text-white">LinkedIn</span>
-                    </div>
-                    <div className="col-span-2">
-                      <Input
-                        value={formData.linkedinUrl}
-                        onChange={(e) => updateFormData('linkedinUrl', e.target.value)}
-                        placeholder="LinkedIn URL"
-                        disabled={!socialMediaChecked.linkedin}
-                        className="bg-neutral-700 border-neutral-600 text-white disabled:opacity-50"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {!isStepCompleted(2) && (
-                <Button
-                  onClick={() => completeStep(2)}
-                  disabled={isSubmitting}
-                  className="bg-orange-400 hover:bg-orange-500 text-white disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Saving...' : 'Save Promotion Links'}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <SocialStepCard
+            isActive={isStepActive(2)}
+            isCompleted={isStepCompleted(2)}
+            isSubmitting={isSubmitting}
+            formData={formData}
+            updateFormData={updateFormData}
+            socialMediaChecked={socialMediaChecked}
+            setSocialMediaChecked={setSocialMediaChecked}
+            completeStep={completeStep}
+          />
         )}
       </div>
 
-      {completedSteps.length === steps.length && (
-        <Card className="bg-green-900/20 border-green-500/30 mt-6">
-          <CardContent className="p-6 text-center">
-            <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">
-              All Steps Completed!
-            </h3>
-            <p className="text-gray-300">
-              Your after-event process has been successfully completed.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {completedSteps.length === steps.length && <CompletionCard />}
     </div>
   );
 }

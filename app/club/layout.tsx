@@ -1,0 +1,123 @@
+"use client";
+
+import React, { useState } from "react";
+import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
+import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { useSession } from "next-auth/react";
+import { CalendarDays, User, LogOut } from "lucide-react";
+
+export default function ClubLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const { data: session } = useSession();
+  const pathname = usePathname();
+  // Only hide the shared sidebar on the event detail page: /club/event/[id]
+  // This will NOT hide it on other subroutes like /club/event/create
+  const isEventDetailPage = new RegExp('^/club/event/[^/]+$').test(pathname ?? "");
+
+  const links = [
+    {
+      label: "Your Events",
+      href: "/club",
+      icon: (
+        <CalendarDays className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
+      ),
+      id: "events",
+    },
+    {
+      label: "Profile",
+      href: "/club/profile",
+      icon: (
+        <User className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
+      ),
+      id: "profile",
+    },
+    {
+      label: "Logout",
+      href: "#",
+      icon: (
+        <LogOut className="h-5 w-5 shrink-0 dark:text-red-400 text-red-400" />
+      ),
+      id: "logout",
+    },
+  ];
+
+  return isEventDetailPage ? (
+    <div className="min-h-screen w-full bg-neutral-900">{children}</div>
+  ) : (
+    <div className="flex min-h-screen w-full bg-neutral-900">
+      <div className="sticky top-0 h-screen">
+        <Sidebar open={open} setOpen={setOpen}>
+          <SidebarBody className="justify-between gap-10 dark:bg-neutral-900 dark:border-r dark:border-neutral-800 bg-white h-full">
+            <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+              <Logo />
+              <div className="mt-8 flex flex-col gap-2">
+                {links.map((link) => (
+                  <div key={link.id}>
+                    <SidebarLink
+                      link={{
+                        ...link,
+                        href: link.id === "logout" ? "#" : link.href,
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col items-start align-middle gap-2">
+              <div className="-ml-1">
+                <ThemeToggle />
+              </div>
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage
+                    src={session?.user?.image ?? ""}
+                    alt={session?.user?.name ?? "User"}
+                  />
+                  <AvatarFallback>
+                    {(session?.user?.name?.[0] ?? "U").toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {/* Name only appears when sidebar is expanded */}
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={
+                    open
+                      ? { opacity: 1, width: "auto" }
+                      : { opacity: 0, width: 0 }
+                  }
+                  transition={{ duration: 0.2 }}
+                  className="font-medium whitespace-pre dark:text-white text-neutral-800 overflow-hidden"
+                >
+                  {session?.user?.name ?? "User"}
+                </motion.span>
+              </div>
+            </div>
+          </SidebarBody>
+        </Sidebar>
+      </div>
+      <div className="flex-1 bg-neutral-900">{children}</div>
+    </div>
+  );
+}
+
+export const Logo = () => {
+  return (
+    <div className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal">
+      <div className="h-6 w-6 shrink-0 rounded dark:bg-white bg-neutral-600" />
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="font-medium whitespace-pre dark:text-white text-neutral-600"
+      >
+        Club
+      </motion.span>
+    </div>
+  );
+};
