@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Poppins } from "next/font/google";
+import { Figtree } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
@@ -17,6 +18,10 @@ const poppins = Poppins({
   subsets: ["latin"],
 });
 
+const figtree = Figtree({
+  subsets: ["latin"],
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${poppins.className}`}
+        className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${figtree.className}`}
       >
         <Providers>
           {/* Spacer to offset the fixed top bar height */}

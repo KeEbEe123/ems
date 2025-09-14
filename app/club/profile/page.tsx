@@ -363,11 +363,11 @@ export default function ProfilePage() {
           <CardContent>
             {profileData?.faculty_coordinator ? (
               <div>
-                <p className="font-semibold">
+                <p className="font-semibold text-4xl">
                   {profileData.faculty_coordinator}
                 </p>
                 {profileData.faculty_coordinator_designation && (
-                  <p className="text-neutral-400 text-sm">
+                  <p className="text-neutral-400 text-lg">
                     {profileData.faculty_coordinator_designation}
                   </p>
                 )}
