@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ import {
   Instagram,
   Linkedin,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase/browserClient";
 
 export interface AfterEventReportData {
   id: string;
@@ -64,6 +66,44 @@ export function EventReportDialog({
   onOpenChange,
   data,
 }: ProgramDataDialogProps) {
+  // Load club info for the Submitted By section using submitted_by as the club ID
+  const [club, setClub] = useState<{
+    id: string;
+    name: string;
+    email: string | null;
+    avatar_url: string | null;
+  } | null>(null);
+  const [loadingClub, setLoadingClub] = useState(false);
+
+  useEffect(() => {
+    const clubId = data?.submitted_by ?? null;
+    if (!open || !clubId) {
+      setClub(null);
+      return;
+    }
+    let cancelled = false;
+    const fetchClub = async () => {
+      try {
+        setLoadingClub(true);
+        const { data: clubData, error } = await supabase
+          .from("clubs")
+          .select("id, name, email, avatar_url")
+          .eq("id", clubId)
+          .maybeSingle();
+        if (error) throw error;
+        if (!cancelled) setClub((clubData as any) || null);
+      } catch (e) {
+        if (!cancelled) setClub(null);
+        console.error("Failed to load club for submitted_by:", e);
+      } finally {
+        if (!cancelled) setLoadingClub(false);
+      }
+    };
+    fetchClub();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, data?.submitted_by]);
   const getSocialIcon = (platform: string) => {
     switch (platform) {
       case "twitter":
@@ -91,11 +131,23 @@ export function EventReportDialog({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage
+                    src={club?.avatar_url ?? undefined}
+                    alt={club?.name ?? "Club Avatar"}
+                  />
+                  <AvatarFallback>
+                    {(club?.name?.[0] || "-").toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
-                  <h3 className="text-lg font-semibold">Submitted By</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {data?.submitted_by ?? "—"}
+                  <h3 className="text-sm font-semibold">Submitted By</h3>
+                  <p className="text-2xl">
+                    {loadingClub ? "Loading..." : club?.name ?? "—"}
                   </p>
+                  {club?.email && (
+                    <p className="text-xs text-neutral-400">{club.email}</p>
+                  )}
                 </div>
               </CardTitle>
             </CardHeader>
@@ -121,7 +173,9 @@ export function EventReportDialog({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Delivery Mode</p>
-                  <Badge variant="outline">{data?.session_delivery_mode ?? "—"}</Badge>
+                  <Badge variant="outline">
+                    {data?.session_delivery_mode ?? "—"}
+                  </Badge>
                 </div>
               </CardContent>
             </Card>
@@ -136,15 +190,25 @@ export function EventReportDialog({
               <CardContent className="space-y-2">
                 <div>
                   <p className="text-sm text-muted-foreground">Duration</p>
-                  <p className="font-medium">{data?.duration_hours ?? "—"} hours</p>
+                  <p className="font-medium">
+                    {data?.duration_hours ?? "—"} hours
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Start Date</p>
-                  <p className="font-medium">{data?.start_date ? new Date(data.start_date).toLocaleDateString() : "—"}</p>
+                  <p className="font-medium">
+                    {data?.start_date
+                      ? new Date(data.start_date).toLocaleDateString()
+                      : "—"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">End Date</p>
-                  <p className="font-medium">{data?.end_date ? new Date(data.end_date).toLocaleDateString() : "—"}</p>
+                  <p className="font-medium">
+                    {data?.end_date
+                      ? new Date(data.end_date).toLocaleDateString()
+                      : "—"}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -158,16 +222,26 @@ export function EventReportDialog({
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Students</span>
-                  <span className="font-medium">{data?.student_participants ?? "—"}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Students
+                  </span>
+                  <span className="font-medium">
+                    {data?.student_participants ?? "—"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Faculty</span>
-                  <span className="font-medium">{data?.faculty_participants ?? "—"}</span>
+                  <span className="font-medium">
+                    {data?.faculty_participants ?? "—"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">External</span>
-                  <span className="font-medium">{data?.external_participants ?? 0}</span>
+                  <span className="text-sm text-muted-foreground">
+                    External
+                  </span>
+                  <span className="font-medium">
+                    {data?.external_participants ?? 0}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -183,7 +257,9 @@ export function EventReportDialog({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {typeof data?.expenditure_amount === 'number' ? `₹${data.expenditure_amount.toLocaleString()}` : '—'}
+                {typeof data?.expenditure_amount === "number"
+                  ? `₹${data.expenditure_amount.toLocaleString()}`
+                  : "—"}
               </div>
               <p className="text-sm text-muted-foreground">
                 Total expenditure amount
@@ -198,7 +274,9 @@ export function EventReportDialog({
                 <CardTitle className="text-sm font-medium">Objective</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-relaxed">{data?.objective ?? '—'}</p>
+                <p className="text-sm leading-relaxed">
+                  {data?.objective ?? "—"}
+                </p>
               </CardContent>
             </Card>
 
@@ -207,7 +285,9 @@ export function EventReportDialog({
                 <CardTitle className="text-sm font-medium">Benefits</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-relaxed">{data?.benefits ?? '—'}</p>
+                <p className="text-sm leading-relaxed">
+                  {data?.benefits ?? "—"}
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -222,11 +302,11 @@ export function EventReportDialog({
             <CardContent className="space-y-3">
               <div>
                 <p className="text-sm text-muted-foreground">Activity Lead</p>
-                <p className="font-medium">{data?.activity_lead_by ?? '—'}</p>
+                <p className="font-medium">{data?.activity_lead_by ?? "—"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Remarks</p>
-                <p className="text-sm leading-relaxed">{data?.remark ?? '—'}</p>
+                <p className="text-sm leading-relaxed">{data?.remark ?? "—"}</p>
               </div>
             </CardContent>
           </Card>
@@ -311,14 +391,21 @@ export function EventReportDialog({
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                <Badge variant={data?.report_submitted ? "default" : "secondary"}>
+                <Badge
+                  variant={data?.report_submitted ? "default" : "secondary"}
+                >
                   {data?.report_submitted ? "✓" : "✗"} Report Submitted
                 </Badge>
                 <Badge variant={data?.media_uploaded ? "default" : "secondary"}>
                   {data?.media_uploaded ? "✓" : "✗"} Media Uploaded
                 </Badge>
-                <Badge variant={data?.social_media_promoted ? "default" : "secondary"}>
-                  {data?.social_media_promoted ? "✓" : "✗"} Social Media Promoted
+                <Badge
+                  variant={
+                    data?.social_media_promoted ? "default" : "secondary"
+                  }
+                >
+                  {data?.social_media_promoted ? "✓" : "✗"} Social Media
+                  Promoted
                 </Badge>
               </div>
             </CardContent>
@@ -332,12 +419,22 @@ export function EventReportDialog({
             <CardContent className="space-y-2 text-xs text-muted-foreground">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p>Program ID: {data?.id ?? '—'}</p>
-                  <p>Event ID: {data?.event_id ?? '—'}</p>
+                  <p>Program ID: {data?.id ?? "—"}</p>
+                  <p>Event ID: {data?.event_id ?? "—"}</p>
                 </div>
                 <div>
-                  <p>Created: {data?.created_at ? new Date(data.created_at).toLocaleString() : '—'}</p>
-                  <p>Updated: {data?.updated_at ? new Date(data.updated_at).toLocaleString() : '—'}</p>
+                  <p>
+                    Created:{" "}
+                    {data?.created_at
+                      ? new Date(data.created_at).toLocaleString()
+                      : "—"}
+                  </p>
+                  <p>
+                    Updated:{" "}
+                    {data?.updated_at
+                      ? new Date(data.updated_at).toLocaleString()
+                      : "—"}
+                  </p>
                 </div>
               </div>
             </CardContent>
