@@ -778,7 +778,7 @@ export default function EventsPage() {
 
       {/* IIC Event View Dialog */}
       <Dialog open={iicEventViewOpen} onOpenChange={setIicEventViewOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[700px] h-[520px] overflow-y-auto scrollbar-track-amber-200">
           <DialogHeader>
             <DialogTitle>IIC Event Details</DialogTitle>
           </DialogHeader>

@@ -257,47 +257,52 @@ export function IICEventCalendar() {
     </div>
   );
 
-  const EventCard = ({ event }: { event: EventData }) => (
-    <Card className="bg-gradient-to-tl from-[#3A3CBA] via-[#FF1D1D] to-[#FCB045]">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-white text-2xl leading-snug">
-            {event.title}
-          </CardTitle>
-          {event.quarter && (
-            <Badge className="bg-blue-600 text-white shrink-0">
-              {event.quarter}
-            </Badge>
+  const EventCard = ({ event }: { event: EventData }) => {
+    const isLongTitle = (event.title || "").length > 40;
+    return (
+      <Card className="bg-gradient-to-tl from-[#3A3CBA] via-[#FF1D1D] to-[#FCB045] max-h-56 overflow-hidden overflow-x-hidden w-full">
+        <CardHeader className="w-full overflow-x-hidden">
+          <div className="flex items-start justify-between gap-3 w-full">
+            <div className="flex items-center gap-2 min-w-0 flex-1 max-w-full overflow-hidden">
+              <CardTitle className="text-white text-xl leading-snug line-clamp-2 whitespace-normal break-words hyphens-auto overflow-hidden max-w-full">
+                {event.title}
+              </CardTitle>
+            </div>
+            {event.quarter && (
+              <Badge className="bg-blue-600 text-white shrink-0">
+                {event.quarter}
+              </Badge>
+            )}
+          </div>
+          {event.description && (
+            <CardDescription className="text-neutral-200 line-clamp-2 whitespace-normal break-words hyphens-auto max-w-full">
+              {event.description}
+            </CardDescription>
           )}
-        </div>
-        {event.description && (
-          <CardDescription className="text-neutral-200 line-clamp-3">
-            {event.description}
-          </CardDescription>
-        )}
-      </CardHeader>
-      <CardFooter className="justify-end gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="View details"
-          className="text-white"
-          onClick={() => handleViewReport(event.id)}
-        >
-          <Eye className="h-10 w-10" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Remove from calendar"
-          className="text-white/90"
-          onClick={() => handleRemoveFromCalendar(event.id)}
-        >
-          <Trash2 className="h-10 w-10" />
-        </Button>
-      </CardFooter>
-    </Card>
-  );
+        </CardHeader>
+        <CardFooter className="justify-end gap-2 w-full overflow-x-hidden flex-wrap">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="View details"
+            className="text-white"
+            onClick={() => handleViewReport(event.id)}
+          >
+            <Eye className="h-10 w-10" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Remove from calendar"
+            className="text-white/90"
+            onClick={() => handleRemoveFromCalendar(event.id)}
+          >
+            <Trash2 className="h-10 w-10" />
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  };
 
   return (
     <div className="p-6 dark:from-purple-950 dark:via-neutral-900 dark:to-black bg-gradient-to-tl from-pink-300 via-white to-white min-h-screen">
