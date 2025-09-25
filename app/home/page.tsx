@@ -16,7 +16,7 @@ import LogoLoop from "@/components/LogoLoop";
 import { HomeIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase/browserClient";
 function Page() {
-  const plugin = useRef(Autoplay({ delay: 4000, stopOnInteraction: true }));
+  const plugin = useRef(Autoplay({ delay: 5000 }));
   const [events, setEvents] = useState<
     Array<{ id: string; name: string; banners: Record<string, string> }>
   >([]);
@@ -101,8 +101,6 @@ function Page() {
             opts={{ align: "center", loop: true }}
             plugins={[plugin.current as any]}
             className="w-full"
-            onMouseEnter={plugin.current?.stop}
-            onMouseLeave={plugin.current?.reset}
           >
             <CarouselContent
               className={`-ml-4 md:-ml-6 ${

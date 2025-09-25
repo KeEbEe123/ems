@@ -16,7 +16,7 @@ import Certificates from "@/components/certificates";
 import { motion } from "motion/react";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Partner from "@/components/Partner";
 import { supabase } from "@/lib/supabase/browserClient"; // ✅ make sure your supabase client path is correct
@@ -130,8 +130,8 @@ export default function ProfilePage() {
     if (id !== "logout" && id !== "home" && id !== "partner") {
       setCurrentPage(id);
     } else if (id === "logout") {
-      localStorage.removeItem("token");
-      window.location.href = "/";
+      signOut();
+      window.location.href = "/home";
     } else if (id === "partner") {
       setCurrentPage("partner");
     } else {

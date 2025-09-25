@@ -383,13 +383,13 @@ export default function ProfilePage() {
 
       {/* Edit Profile Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[500px] bg-neutral-900 border-neutral-700">
+        <DialogContent className="sm:max-w-[500px] border-neutral-700">
           <DialogHeader>
             <DialogTitle>Edit Profile</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm text-neutral-300">
+              <Label htmlFor="name" className="text-sm">
                 Club Name
               </Label>
               <Input
@@ -398,13 +398,13 @@ export default function ProfilePage() {
                 onChange={(e) =>
                   setEditForm({ ...editForm, name: e.target.value })
                 }
-                className="bg-neutral-800 border-neutral-600 text-black"
+                className="border-neutral-600"
                 placeholder="Enter club name"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="about" className="text-sm text-neutral-300">
+              <Label htmlFor="about" className="text-sm">
                 About
               </Label>
               <Textarea
@@ -413,16 +413,13 @@ export default function ProfilePage() {
                 onChange={(e) =>
                   setEditForm({ ...editForm, about: e.target.value })
                 }
-                className="bg-neutral-800 border-neutral-600 text-black min-h-[100px]"
+                className="border-neutral-600 min-h-[100px]"
                 placeholder="Tell us about your club..."
               />
             </div>
 
             <div className="space-y-2">
-              <Label
-                htmlFor="faculty_coordinator"
-                className="text-sm text-neutral-300"
-              >
+              <Label htmlFor="faculty_coordinator" className="text-sm">
                 Faculty Coordinator
               </Label>
               <Input
@@ -434,7 +431,7 @@ export default function ProfilePage() {
                     faculty_coordinator: e.target.value,
                   })
                 }
-                className="bg-neutral-800 border-neutral-600 text-black"
+                className="border-neutral-600"
                 placeholder="Faculty coordinator name"
               />
             </div>
@@ -442,7 +439,7 @@ export default function ProfilePage() {
             <div className="space-y-2">
               <Label
                 htmlFor="faculty_coordinator_designation"
-                className="text-sm text-neutral-300"
+                className="text-sm"
               >
                 Faculty Designation
               </Label>
@@ -455,7 +452,7 @@ export default function ProfilePage() {
                     faculty_coordinator_designation: e.target.value,
                   })
                 }
-                className="bg-neutral-800 border-neutral-600 text-white"
+                className="border-neutral-600"
                 placeholder="Faculty coordinator designation"
               />
             </div>

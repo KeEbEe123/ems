@@ -70,11 +70,11 @@ export const Card = React.memo(function Card({
 
       {/* Content area */}
       <div className="p-3 md:p-4 flex items-center justify-between">
-        <div className="text-sm md:text-base font-semibold text-foreground">
+        <div className="text-xs md:text-base font-semibold text-foreground">
           {card.title}
         </div>
 
-        <div className="relative flex items-center justify-center w-8 h-8 rounded-full">
+        <div className="relative hidden md:flex items-center justify-center size-8 aspect-square shrink-0 rounded-full">
           <ArrowUpRight size={16} className="text-foreground z-10" />
 
           {/* Dashed spinning border */}
