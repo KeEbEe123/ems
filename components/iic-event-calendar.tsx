@@ -38,6 +38,8 @@ interface EventData {
   title: string;
   quarter: string;
   description: string;
+  semester?: string;
+  dateRange?: string;
 }
 
 type Club = { id: string; name: string; avatar_url?: string };
@@ -74,8 +76,15 @@ export function IICEventCalendar() {
     event.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleRemoveFromCalendar = (eventId: string) => {
-    setEvents(events.filter((event) => event.id !== eventId));
+  const handleDeleteEvent = async (eventId: string) => {
+    const ok = window.confirm("Are you sure you want to delete this event? This action cannot be undone.");
+    if (!ok) return;
+    const { error } = await supabase.from("events").delete().eq("id", eventId);
+    if (error) {
+      console.error("Failed to delete event:", error.message);
+      return;
+    }
+    setEvents((prev) => prev.filter((e) => e.id !== eventId));
   };
 
   const handleViewReport = async (eventId: string) => {
@@ -128,7 +137,7 @@ export function IICEventCalendar() {
 
       let query = supabase
         .from("events")
-        .select("id, name, additional_details, quarter, semester, description")
+        .select("id, name, additional_details, quarter, semester, description, date_range")
         .eq("hosted", "iic")
         .order("created_at", { ascending: false });
 
@@ -142,6 +151,8 @@ export function IICEventCalendar() {
         title: e.name,
         quarter: e.quarter || "",
         description: e.description || e.additional_details || "",
+        semester: e.semester || "",
+        dateRange: e.date_range || "",
       }));
       setEvents(mapped);
     } catch (e) {
@@ -258,49 +269,81 @@ export function IICEventCalendar() {
   );
 
   const EventCard = ({ event }: { event: EventData }) => {
-    const isLongTitle = (event.title || "").length > 40;
+    // Compose semester-quarter for date range display if needed
+    const semesterQuarter = event.semester && event.quarter ? `${event.semester}-${event.quarter}` : "";
+    const displayDateRange = event.dateRange
+      ? event.dateRange.replace("-", " - ")
+      : semesterQuarter
+      ? getDateRange(semesterQuarter)
+      : "";
+
     return (
-      <Card className="bg-gradient-to-tl from-[#3A3CBA] via-[#FF1D1D] to-[#FCB045] max-h-56 overflow-hidden overflow-x-hidden w-full">
-        <CardHeader className="w-full overflow-x-hidden">
-          <div className="flex items-start justify-between gap-3 w-full">
-            <div className="flex items-center gap-2 min-w-0 flex-1 max-w-full overflow-hidden">
-              <CardTitle className="text-white text-xl leading-snug line-clamp-2 whitespace-normal break-words hyphens-auto overflow-hidden max-w-full">
-                {event.title}
-              </CardTitle>
-            </div>
-            {event.quarter && (
-              <Badge className="bg-blue-600 text-white shrink-0">
-                {event.quarter}
-              </Badge>
+      <div className="p-[2px] bg-gradient-to-tl from-[#3A3CBA] via-[#FF1D1D] to-[#FCB045] rounded-lg h-full">
+        <Card className="bg-white dark:bg-neutral-900 border-0 h-full flex flex-col">
+          <CardHeader className="flex-none pb-3">
+            <CardTitle
+              className="text-black dark:text-white text-base leading-snug break-words"
+              title={event.title}
+            >
+              {event.title}
+            </CardTitle>
+
+            {(event.semester || event.quarter) && (
+              <div className="flex gap-2 mt-2 mb-1">
+                {event.semester && (
+                  <Badge
+                    variant="outline"
+                    className="bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                  >
+                    {event.semester
+                      .replace("-", " ")
+                      .split(" ")
+                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                      .join(" ")}
+                  </Badge>
+                )}
+                {event.quarter && (
+                  <Badge
+                    variant="outline"
+                    className="bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
+                  >
+                    {event.quarter
+                      .replace("-", " ")
+                      .split(" ")
+                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                      .join(" ")}
+                  </Badge>
+                )}
+              </div>
             )}
-          </div>
-          {event.description && (
-            <CardDescription className="text-neutral-200 line-clamp-2 whitespace-normal break-words hyphens-auto max-w-full">
-              {event.description}
+
+            <CardDescription className="text-neutral-600 dark:text-neutral-400 text-sm min-h-[1.5rem] pt-1">
+              {displayDateRange ? `📅 ${displayDateRange}` : event.description}
             </CardDescription>
-          )}
-        </CardHeader>
-        <CardFooter className="justify-end gap-2 w-full overflow-x-hidden flex-wrap">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="View details"
-            className="text-white"
-            onClick={() => handleViewReport(event.id)}
-          >
-            <Eye className="h-10 w-10" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Remove from calendar"
-            className="text-white/90"
-            onClick={() => handleRemoveFromCalendar(event.id)}
-          >
-            <Trash2 className="h-10 w-10" />
-          </Button>
-        </CardFooter>
-      </Card>
+          </CardHeader>
+
+          <div className="flex-grow" />
+
+          <CardFooter className="flex-none justify-end gap-4 border-t border-neutral-200 dark:border-neutral-700 pt-4 pb-4">
+            <button
+              aria-label="View"
+              className="text-black dark:text-white hover:scale-105 transition-transform"
+              title="View Event Report"
+              onClick={() => handleViewReport(event.id)}
+            >
+              <Eye className="w-5 h-5" />
+            </button>
+            <button
+              aria-label="Delete"
+              className="text-black dark:text-white hover:scale-105 transition-transform"
+              title="Delete Event"
+              onClick={() => handleDeleteEvent(event.id)}
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          </CardFooter>
+        </Card>
+      </div>
     );
   };
 

@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { CalendarDays, User, LogOut } from "lucide-react";
 
 export default function ClubLayout({
@@ -17,9 +17,12 @@ export default function ClubLayout({
   const [open, setOpen] = useState(false);
   const { data: session } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
   // Only hide the shared sidebar on the event detail page: /club/event/[id]
   // This will NOT hide it on other subroutes like /club/event/create
-  const isEventDetailPage = new RegExp('^/club/event/[^/]+$').test(pathname ?? "");
+  const isEventDetailPage = new RegExp("^/club/event/[^/]+$").test(
+    pathname ?? ""
+  );
 
   const links = [
     {
@@ -40,7 +43,7 @@ export default function ClubLayout({
     },
     {
       label: "Logout",
-      href: "#",
+      href: "/home",
       icon: (
         <LogOut className="h-5 w-5 shrink-0 dark:text-red-400 text-red-400" />
       ),
@@ -60,12 +63,28 @@ export default function ClubLayout({
               <div className="mt-8 flex flex-col gap-2">
                 {links.map((link) => (
                   <div key={link.id}>
-                    <SidebarLink
-                      link={{
-                        ...link,
-                        href: link.id === "logout" ? "#" : link.href,
-                      }}
-                    />
+                    {link.id === "logout" ? (
+                      <a
+                        href="#"
+                        data-sidebar-link
+                        className="flex items-center justify-start gap-2 group/sidebar py-2"
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          try {
+                            await signOut({ redirect: false });
+                          } finally {
+                            router.push("/home");
+                          }
+                        }}
+                      >
+                        {link.icon}
+                        <span className="text-neutral-700 dark:text-neutral-200 text-sm">
+                          {link.label}
+                        </span>
+                      </a>
+                    ) : (
+                      <SidebarLink link={link} />
+                    )}
                   </div>
                 ))}
               </div>
