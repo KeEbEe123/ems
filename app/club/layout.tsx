@@ -7,8 +7,8 @@ import { PermanentSidebar, PermanentSidebarLink } from "@/components/ui/permanen
 import { ClubTopBar } from "@/components/ui/club-topbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useSession, signOut } from "next-auth/react";
-import { CalendarDays, User, LogOut } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { CalendarDays, User } from "lucide-react";
 
 export default function ClubLayout({
   children,
@@ -41,14 +41,6 @@ export default function ClubLayout({
       ),
       id: "profile",
     },
-    {
-      label: "Logout",
-      href: "/home",
-      icon: (
-        <LogOut className="h-5 w-5 shrink-0 dark:text-red-400 text-red-400" />
-      ),
-      id: "logout",
-    },
   ];
 
   return isEventDetailPage ? (
@@ -61,30 +53,7 @@ export default function ClubLayout({
             <Logo />
             <div className="mt-8 flex flex-col gap-2">
               {links.map((link) => (
-                <div key={link.id}>
-                  {link.id === "logout" ? (
-                    <a
-                      href="#"
-                      data-sidebar-link
-                      className="flex items-center justify-start gap-2 group/sidebar py-2"
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        try {
-                          await signOut({ redirect: false });
-                        } finally {
-                          router.push("/home");
-                        }
-                      }}
-                    >
-                      {link.icon}
-                      <span className="text-neutral-700 dark:text-neutral-200 text-sm">
-                        {link.label}
-                      </span>
-                    </a>
-                  ) : (
-                    <PermanentSidebarLink link={link} />
-                  )}
-                </div>
+                <PermanentSidebarLink key={link.id} link={link} />
               ))}
             </div>
           </div>
