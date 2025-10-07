@@ -49,6 +49,7 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface Event {
   id: string;
@@ -467,44 +468,82 @@ export default function EventsPage() {
     };
 
     return (
-      <Card className="bg-gradient-to-tl from-[#3A3CBA] via-[#FF1D1D] to-[#FCB045]">
-        <CardHeader>
-          <CardTitle className="text-white text-xl">{event.name}</CardTitle>
-          <CardDescription className="text-neutral-300">
-            {event.hosted === "iic" && getDateRangeDisplay(event)
-              ? `📅 ${getDateRangeDisplay(event)}`
-              : `${formatDate(event.start_datetime)} - ${formatDate(
-                  event.end_datetime
-                )}`}
-          </CardDescription>
-        </CardHeader>
-        {event.status === "approved" && (
-          <CardFooter className="justify-end gap-4 border-t border-white/10 pt-4">
-            <button
-              aria-label="View"
-              className="text-white hover:scale-105 transition-transform"
-              title="View Event"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleViewIicEvent(event);
-              }}
+      <div className="p-[2px] bg-gradient-to-tl from-[#3A3CBA] via-[#FF1D1D] to-[#FCB045] rounded-lg h-full">
+        <Card className="bg-white dark:bg-neutral-900 border-0 h-full flex flex-col">
+          <CardHeader className="flex-none pb-3">
+            <CardTitle
+              className="text-black dark:text-white text-xl line-clamp-2 min-h-[3.5rem]"
+              title={event.name}
             >
-              <Eye className="w-5 h-5" />
-            </button>
-            <button
-              aria-label="Settings"
-              className="text-white hover:scale-105 transition-transform hover:animate-spinHalf"
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/club/event/${event.id}`);
-              }}
-              title="Event Settings"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-          </CardFooter>
-        )}
-      </Card>
+              {event.name}
+            </CardTitle>
+
+            {/* Chips for Semester and Quarter */}
+            {event.semester && event.quarter && (
+              <div className="flex gap-2 mt-2 mb-1">
+                <Badge
+                  variant="outline"
+                  className="bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                >
+                  {event.semester
+                    .replace("-", " ")
+                    .split(" ")
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(" ")}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
+                >
+                  {event.quarter
+                    .replace("-", " ")
+                    .split(" ")
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(" ")}
+                </Badge>
+              </div>
+            )}
+
+            <CardDescription className="text-neutral-600 dark:text-neutral-400 text-sm min-h-[1.5rem] pt-1">
+              {event.hosted === "iic" && getDateRangeDisplay(event)
+                ? `📅 ${getDateRangeDisplay(event)}`
+                : `${formatDate(event.start_datetime)} - ${formatDate(
+                    event.end_datetime
+                  )}`}
+            </CardDescription>
+          </CardHeader>
+
+          {/* Spacer to push footer to bottom */}
+          <div className="flex-grow" />
+
+          {event.status === "approved" && (
+            <CardFooter className="flex-none justify-end gap-4 border-t border-neutral-200 dark:border-neutral-700 pt-4 pb-4">
+              <button
+                aria-label="View"
+                className="text-black dark:text-white hover:scale-105 transition-transform"
+                title="View Event"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewIicEvent(event);
+                }}
+              >
+                <Eye className="w-5 h-5" />
+              </button>
+              <button
+                aria-label="Settings"
+                className="text-black dark:text-white hover:scale-105 transition-transform hover:animate-spinHalf"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/club/event/${event.id}`);
+                }}
+                title="Event Settings"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            </CardFooter>
+          )}
+        </Card>
+      </div>
     );
   };
 
@@ -880,37 +919,34 @@ export default function EventsPage() {
               value={iicSemesterFilter}
               onValueChange={setIicSemesterFilter}
             >
-              <SelectTrigger className="w-64 bg-neutral-800 border-neutral-700 text-white">
+              <SelectTrigger className="w-64 border-black">
                 <SelectValue placeholder="All Semesters & Quarters" />
               </SelectTrigger>
-              <SelectContent className="bg-neutral-800 border-neutral-700">
-                <SelectItem
-                  value="all"
-                  className="text-white hover:bg-neutral-700"
-                >
+              <SelectContent className="border-neutral-700">
+                <SelectItem value="all" className="hover:bg-neutral-700">
                   All Semesters & Quarters
                 </SelectItem>
                 <SelectItem
                   value="semester-1-quarter-1"
-                  className="text-white hover:bg-neutral-700"
+                  className="hover:bg-neutral-700"
                 >
                   Semester 1 - Quarter 1
                 </SelectItem>
                 <SelectItem
                   value="semester-1-quarter-2"
-                  className="text-white hover:bg-neutral-700"
+                  className="hover:bg-neutral-700"
                 >
                   Semester 1 - Quarter 2
                 </SelectItem>
                 <SelectItem
                   value="semester-2-quarter-3"
-                  className="text-white hover:bg-neutral-700"
+                  className="hover:bg-neutral-700"
                 >
                   Semester 2 - Quarter 3
                 </SelectItem>
                 <SelectItem
                   value="semester-2-quarter-4"
-                  className="text-white hover:bg-neutral-700"
+                  className="hover:bg-neutral-700"
                 >
                   Semester 2 - Quarter 4
                 </SelectItem>
@@ -923,7 +959,7 @@ export default function EventsPage() {
                 placeholder="Search IIC events..."
                 value={iicSearchTerm}
                 onChange={(e) => setIicSearchTerm(e.target.value)}
-                className="pl-10 bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-400"
+                className="pl-10 border-neutral-700"
               />
             </div>
           </div>
