@@ -28,6 +28,10 @@ import {
   Share2,
   Link,
   Search,
+  CalendarPlus,
+  Upload,
+  Trash2,
+  FileDown,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -50,6 +54,14 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Event {
   id: string;
@@ -66,10 +78,23 @@ interface Event {
   hosted?: string;
 }
 
+interface CalendarEvent {
+  id: string;
+  event_id: string;
+  club_id: string;
+  added_at: string;
+  report_status?: string;
+  reviewer_comment?: string;
+  review_request?: string;
+  event?: Event;
+}
+
 export default function EventsPage() {
   const [activeTab, setActiveTab] = useState("iic");
+  const [selfHostedTab, setSelfHostedTab] = useState("current");
   const [iicEvents, setIicEvents] = useState<Event[]>([]);
   const [selfEvents, setSelfEvents] = useState<Event[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formSubmitting, setFormSubmitting] = useState(false);
@@ -106,7 +131,7 @@ export default function EventsPage() {
           "id, name, start_datetime, end_datetime, event_type, status, created_at, description, semester, quarter, date_range, hosted, clubs(owner_id), club_id"
         )
         .eq("hosted", "iic")
-        .eq("club_id", sessionUserId)
+        .eq("status", "approved")
         .order("created_at", { ascending: false });
       if (iicErr) console.error("IIC error:", iicErr.message);
       setIicEvents((iicData || []) as Event[]);
@@ -122,10 +147,48 @@ export default function EventsPage() {
         .order("created_at", { ascending: false });
       if (selfErr) console.error("Self-hosted error:", selfErr.message);
       setSelfEvents((selfData || []) as Event[]);
+
+      // Fetch calendar events
+      const { data: calendarData, error: calendarErr } = await supabase
+        .from("club_event_calendar")
+        .select(
+          `
+          id,
+          event_id,
+          club_id,
+          added_at,
+          report_status,
+          reviewer_comment,
+          review_request,
+          events (
+            id,
+            name,
+            start_datetime,
+            end_datetime,
+            event_type,
+            status,
+            description,
+            semester,
+            quarter,
+            date_range,
+            hosted
+          )
+        `
+        )
+        .eq("club_id", sessionUserId)
+        .order("added_at", { ascending: false });
+      if (calendarErr) console.error("Calendar error:", calendarErr.message);
+      setCalendarEvents(
+        (calendarData || []).map((item: any) => ({
+          ...item,
+          event: item.events,
+        }))
+      );
     } catch (error) {
       console.error("Error fetching events:", error);
       setIicEvents([]);
       setSelfEvents([]);
+      setCalendarEvents([]);
     } finally {
       setIsLoading(false);
     }
@@ -203,6 +266,83 @@ export default function EventsPage() {
   const handleViewIicEvent = (event: Event) => {
     setSelectedIicEvent(event);
     setIicEventViewOpen(true);
+  };
+
+  const handleAddToCalendar = async (eventId: string) => {
+    if (!sessionUserId) return;
+
+    try {
+      // Check if already added
+      const { data: existing } = await supabase
+        .from("club_event_calendar")
+        .select("id")
+        .eq("event_id", eventId)
+        .eq("club_id", sessionUserId)
+        .maybeSingle();
+
+      if (existing) {
+        alert("This event is already in your calendar");
+        return;
+      }
+
+      // Add to calendar
+      const { error } = await supabase.from("club_event_calendar").insert({
+        event_id: eventId,
+        club_id: sessionUserId,
+        report_status: "Not Submitted",
+      });
+
+      if (error) {
+        console.error("Error adding to calendar:", error);
+        alert("Failed to add event to calendar");
+        return;
+      }
+
+      await fetchEvents(); // Refresh to get updated calendar
+    } catch (error) {
+      console.error("Error adding to calendar:", error);
+      alert("Failed to add event to calendar");
+    }
+  };
+
+  const handleRemoveFromCalendar = async (eventId: string) => {
+    if (!sessionUserId) return;
+
+    try {
+      // Find the calendar entry
+      const { data: calendarEntry } = await supabase
+        .from("club_event_calendar")
+        .select("id")
+        .eq("event_id", eventId)
+        .eq("club_id", sessionUserId)
+        .maybeSingle();
+
+      if (!calendarEntry) {
+        alert("Event not found in calendar");
+        return;
+      }
+
+      // Remove from calendar
+      const { error } = await supabase
+        .from("club_event_calendar")
+        .delete()
+        .eq("id", calendarEntry.id);
+
+      if (error) {
+        console.error("Error removing from calendar:", error);
+        alert("Failed to remove event from calendar");
+        return;
+      }
+
+      await fetchEvents(); // Refresh to get updated calendar
+    } catch (error) {
+      console.error("Error removing from calendar:", error);
+      alert("Failed to remove event from calendar");
+    }
+  };
+
+  const isEventInCalendar = (eventId: string) => {
+    return calendarEvents.some((ce) => ce.event_id === eventId);
   };
 
   // Date + Time picker built with shadcn Calendar & Popover
@@ -495,7 +635,7 @@ export default function EventsPage() {
                 {event.semester && (
                   <Badge
                     variant="outline"
-                    className="bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                    className="text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
                   >
                     {event.semester
                       .replace("-", " ")
@@ -509,7 +649,7 @@ export default function EventsPage() {
                 {event.quarter && (
                   <Badge
                     variant="outline"
-                    className="bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
+                    className="text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
                   >
                     {event.quarter
                       .replace("-", " ")
@@ -525,29 +665,43 @@ export default function EventsPage() {
           </div>
 
           {event.status === "approved" && (
-            <CardFooter className="flex-none justify-end gap-3 border-t border-neutral-200 dark:border-neutral-700 py-2">
-              <button
-                aria-label="View"
-                className="text-black dark:text-white hover:scale-105 transition-transform"
-                title="View Event"
+            <CardFooter className="flex-none justify-between gap-3 border-t border-neutral-200 dark:border-neutral-700 py-3 px-6">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleViewIicEvent(event);
                 }}
+                className="border-neutral-300 dark:border-neutral-600 text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"
               >
-                <Eye className="w-5 h-5" />
-              </button>
-              <button
-                aria-label="Settings"
-                className="text-black dark:text-white hover:scale-105 transition-transform hover:animate-spinHalf"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push(`/club/event/${event.id}`);
-                }}
-                title="Event Settings"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
+                View Details
+              </Button>
+              {isEventInCalendar(event.id) ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveFromCalendar(event.id);
+                  }}
+                  className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white dark:border-red-500 dark:text-red-500 dark:hover:bg-red-600 dark:hover:text-white"
+                >
+                  Remove from Calendar
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddToCalendar(event.id);
+                  }}
+                  className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white dark:border-blue-500 dark:text-blue-500 dark:hover:bg-blue-600 dark:hover:text-white"
+                >
+                  Add to Calendar
+                </Button>
+              )}
             </CardFooter>
           )}
         </Card>
@@ -556,10 +710,7 @@ export default function EventsPage() {
   };
 
   return (
-    <div className="min-h-screen p-6 dark:bg-gradient-to-tl dark:from-purple-950 dark:via-neutral-900 dark:to-black bg-gradient-to-tl from-pink-300 via-white to-white">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-4">Your Events</h1>
-      </div>
+    <div className="min-h-screen p-6 bg-white dark:bg-neutral-900">
 
       {/* Create Event Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -897,28 +1048,11 @@ export default function EventsPage() {
       </Dialog>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="flex justify-start mb-8">
-          <TabsList className="inline-flex w-auto bg-neutral-800 dark:bg-neutral-800 bg-white/80 border border-neutral-700 dark:border-neutral-700 border-neutral-200 rounded-lg p-1 backdrop-blur-sm">
-            <TabsTrigger
-              value="iic"
-              className="px-6 py-2 rounded-md transition-all duration-200 data-[state=active]:bg-neutral-700 data-[state=active]:text-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-neutral-700 dark:data-[state=active]:text-white data-[state=active]:bg-neutral-900 data-[state=active]:text-white text-neutral-300 dark:text-neutral-300 text-neutral-600 hover:text-neutral-800 dark:hover:text-neutral-200 font-medium"
-            >
-              IIC Events
-            </TabsTrigger>
-            <TabsTrigger
-              value="current"
-              className="px-6 py-2 rounded-md transition-all duration-200 data-[state=active]:bg-neutral-700 data-[state=active]:text-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-neutral-700 dark:data-[state=active]:text-white data-[state=active]:bg-neutral-900 data-[state=active]:text-white text-neutral-300 dark:text-neutral-300 text-neutral-600 hover:text-neutral-800 dark:hover:text-neutral-200 font-medium"
-            >
-              Current
-            </TabsTrigger>
-            <TabsTrigger
-              value="past"
-              className="px-6 py-2 rounded-md transition-all duration-200 data-[state=active]:bg-neutral-700 data-[state=active]:text-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-neutral-700 dark:data-[state=active]:text-white data-[state=active]:bg-neutral-900 data-[state=active]:text-white text-neutral-300 dark:text-neutral-300 text-neutral-600 hover:text-neutral-800 dark:hover:text-neutral-200 font-medium"
-            >
-              Past
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="iic">IIC Events</TabsTrigger>
+          <TabsTrigger value="self-hosted">Self Hosted Events</TabsTrigger>
+          <TabsTrigger value="calendar">My Event Calendar</TabsTrigger>
+        </TabsList>
 
         <TabsContent value="iic" className="mt-8">
           {/* Search and Filter Controls */}
@@ -992,41 +1126,188 @@ export default function EventsPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="current" className="mt-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AddEventCard />
-            {isLoading ? (
-              <div className="col-span-full flex justify-center items-center py-8">
-                <div className="text-neutral-400">Loading events...</div>
+        <TabsContent value="self-hosted" className="mt-8">
+          <Tabs value={selfHostedTab} onValueChange={setSelfHostedTab} className="w-full">
+            <div className="flex justify-end mb-6">
+              <TabsList className="inline-flex w-auto">
+                <TabsTrigger value="current">Current</TabsTrigger>
+                <TabsTrigger value="past">Past</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="current">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <AddEventCard />
+                {isLoading ? (
+                  <div className="col-span-full flex justify-center items-center py-8">
+                    <div className="text-neutral-400">Loading events...</div>
+                  </div>
+                ) : currentSelfEvents.length === 0 ? (
+                  <div className="col-span-full text-neutral-400">
+                    No current events.
+                  </div>
+                ) : (
+                  currentSelfEvents.map((event) => (
+                    <SupabaseEventCard key={event.id} event={event} />
+                  ))
+                )}
               </div>
-            ) : currentSelfEvents.length === 0 ? (
-              <div className="col-span-full text-neutral-400">
-                No current events.
+            </TabsContent>
+
+            <TabsContent value="past">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {isLoading ? (
+                  <div className="col-span-full flex justify-center items-center py-8">
+                    <div className="text-neutral-400">Loading events...</div>
+                  </div>
+                ) : pastSelfEvents.length === 0 ? (
+                  <div className="col-span-full text-neutral-400">
+                    No past events.
+                  </div>
+                ) : (
+                  pastSelfEvents.map((event) => (
+                    <SupabaseEventCard key={event.id} event={event} />
+                  ))
+                )}
               </div>
-            ) : (
-              currentSelfEvents.map((event) => (
-                <SupabaseEventCard key={event.id} event={event} />
-              ))
-            )}
-          </div>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
-        <TabsContent value="past" className="mt-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {isLoading ? (
-              <div className="col-span-full flex justify-center items-center py-8">
-                <div className="text-neutral-400">Loading events...</div>
+        <TabsContent value="calendar" className="mt-8">
+          <Card className="border-neutral-700">
+            <CardHeader>
+              <CardTitle className="text-2xl">My Event Calendar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-16">S.No.</TableHead>
+                      <TableHead>Title of Activity</TableHead>
+                      <TableHead className="text-center">View Activity Details</TableHead>
+                      <TableHead className="text-center">Upload Activity Report</TableHead>
+                      <TableHead className="text-center">Correct Status of Report Submission</TableHead>
+                      <TableHead>Reviewer&apos;s Comment</TableHead>
+                      <TableHead className="text-center">Review for Request</TableHead>
+                      <TableHead className="text-center">Download Report</TableHead>
+                      <TableHead className="text-center">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center text-neutral-400 py-8">
+                          Loading calendar events...
+                        </TableCell>
+                      </TableRow>
+                    ) : calendarEvents.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center text-neutral-400 py-8">
+                          No events added to calendar yet. Add IIC events from the IIC Events tab.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      calendarEvents.map((calEvent, index) => {
+                        const event = calEvent.event;
+                        if (!event) return null;
+
+                        return (
+                          <TableRow key={calEvent.id}>
+                            <TableCell className="font-medium">{index + 1}</TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-semibold">{event.name}</p>
+                                <p className="text-xs text-neutral-500">
+                                  {event.quarter && event.semester && (
+                                    <span>
+                                      {event.semester.replace("-", " ").split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")} - {event.quarter.replace("-", " ").split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-xs text-neutral-500">
+                                  Type: {event.event_type === "paid" ? "Paid" : "Free"}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewIicEvent(event)}
+                                className="border-neutral-600"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Button
+                                size="sm"
+                                onClick={() => router.push(`/club/event/${event.id}#after-event`)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                              >
+                                <Upload className="w-4 h-4 mr-1" />
+                                Upload
+                              </Button>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge
+                                variant="outline"
+                                className={`${
+                                  calEvent.report_status === "Submitted"
+                                    ? "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                                    : "bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300"
+                                }`}
+                              >
+                                {calEvent.report_status || "Not Submitted"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-sm">{calEvent.reviewer_comment || "NA"}</p>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <p className="text-sm">{calEvent.review_request || "NA"}</p>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-neutral-600"
+                                disabled
+                              >
+                                <FileDown className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  if (confirm("Are you sure you want to remove this event from your calendar?")) {
+                                    const { error } = await supabase
+                                      .from("club_event_calendar")
+                                      .delete()
+                                      .eq("id", calEvent.id);
+                                    if (!error) {
+                                      await fetchEvents();
+                                    }
+                                  }
+                                }}
+                                className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
               </div>
-            ) : pastSelfEvents.length === 0 ? (
-              <div className="col-span-full text-neutral-400">
-                No past events.
-              </div>
-            ) : (
-              pastSelfEvents.map((event) => (
-                <SupabaseEventCard key={event.id} event={event} />
-              ))
-            )}
-          </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

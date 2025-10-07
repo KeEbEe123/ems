@@ -13,8 +13,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { GradientButton } from "@/components/ui/gradient-button";
+import { LoginDialog } from "@/components/ui/login-dialog";
 
 export function TopBar() {
   const { data: session } = useSession();
@@ -71,22 +72,17 @@ export function TopBar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              // DIRECT GOOGLE AUTH
-              <GradientButton
-                type="button"
-                onClick={() =>
-                  signIn("google", {
-                    // send user back here after login
-                    callbackUrl: "/home",
-                  })
-                }
-                style={{ maxWidth: "240px" }}
-              >
-                <span className="flex items-center">
-                  Login
-                  <MoveRight className="ml-1 h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-2" />
-                </span>
-              </GradientButton>
+              <LoginDialog>
+                <GradientButton
+                  type="button"
+                  style={{ maxWidth: "240px" }}
+                >
+                  <span className="flex items-center">
+                    Login
+                    <MoveRight className="ml-1 h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-2" />
+                  </span>
+                </GradientButton>
+              </LoginDialog>
             )}
           </div>
         </div>

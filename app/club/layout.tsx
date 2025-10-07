@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
+import { PermanentSidebar, PermanentSidebarLink } from "@/components/ui/permanent-sidebar";
+import { ClubTopBar } from "@/components/ui/club-topbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useSession, signOut } from "next-auth/react";
@@ -14,7 +15,6 @@ export default function ClubLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
   const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
@@ -56,72 +56,63 @@ export default function ClubLayout({
   ) : (
     <div className="flex min-h-screen w-full bg-neutral-900">
       <div className="sticky top-0 h-screen">
-        <Sidebar open={open} setOpen={setOpen}>
-          <SidebarBody className="justify-between gap-10 dark:bg-neutral-900 dark:border-r dark:border-neutral-800 bg-white h-full">
-            <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
-              <Logo />
-              <div className="mt-8 flex flex-col gap-2">
-                {links.map((link) => (
-                  <div key={link.id}>
-                    {link.id === "logout" ? (
-                      <a
-                        href="#"
-                        data-sidebar-link
-                        className="flex items-center justify-start gap-2 group/sidebar py-2"
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          try {
-                            await signOut({ redirect: false });
-                          } finally {
-                            router.push("/home");
-                          }
-                        }}
-                      >
-                        {link.icon}
-                        <span className="text-neutral-700 dark:text-neutral-200 text-sm">
-                          {link.label}
-                        </span>
-                      </a>
-                    ) : (
-                      <SidebarLink link={link} />
-                    )}
-                  </div>
-                ))}
-              </div>
+        <PermanentSidebar className="justify-between gap-10 dark:bg-neutral-900 dark:border-r dark:border-neutral-800 bg-white h-full">
+          <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+            <Logo />
+            <div className="mt-8 flex flex-col gap-2">
+              {links.map((link) => (
+                <div key={link.id}>
+                  {link.id === "logout" ? (
+                    <a
+                      href="#"
+                      data-sidebar-link
+                      className="flex items-center justify-start gap-2 group/sidebar py-2"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        try {
+                          await signOut({ redirect: false });
+                        } finally {
+                          router.push("/home");
+                        }
+                      }}
+                    >
+                      {link.icon}
+                      <span className="text-neutral-700 dark:text-neutral-200 text-sm">
+                        {link.label}
+                      </span>
+                    </a>
+                  ) : (
+                    <PermanentSidebarLink link={link} />
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="flex flex-col items-start align-middle gap-2">
-              <div className="-ml-1">
-                <ThemeToggle />
-              </div>
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage
-                    src={session?.user?.image ?? ""}
-                    alt={session?.user?.name ?? "User"}
-                  />
-                  <AvatarFallback>
-                    {(session?.user?.name?.[0] ?? "U").toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                {/* Name only appears when sidebar is expanded */}
-                <motion.span
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={
-                    open
-                      ? { opacity: 1, width: "auto" }
-                      : { opacity: 0, width: 0 }
-                  }
-                  transition={{ duration: 0.2 }}
-                  className="font-medium whitespace-pre dark:text-white text-neutral-800 overflow-hidden"
-                >
-                  {session?.user?.name ?? "User"}
-                </motion.span>
-              </div>
+          </div>
+          <div className="flex flex-col items-start align-middle gap-2">
+            <div className="-ml-1">
+              <ThemeToggle />
             </div>
-          </SidebarBody>
-        </Sidebar>
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                <AvatarImage
+                  src={session?.user?.image ?? ""}
+                  alt={session?.user?.name ?? "User"}
+                />
+                <AvatarFallback>
+                  {(session?.user?.name?.[0] ?? "U").toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-medium whitespace-pre dark:text-white text-neutral-800">
+                {session?.user?.name ?? "User"}
+              </span>
+            </div>
+          </div>
+        </PermanentSidebar>
       </div>
-      <div className="flex-1 bg-neutral-900">{children}</div>
+      <div className="flex-1 bg-neutral-900">
+        <ClubTopBar />
+        <div className="pt-[60px]">{children}</div>
+      </div>
     </div>
   );
 }

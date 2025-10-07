@@ -456,7 +456,7 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 dark:bg-gradient-to-tl dark:from-purple-950 dark:via-neutral-900 dark:to-black bg-gradient-to-tl from-pink-300 via-white to-white min-h-screen">
+      <div className="p-6 bg-white dark:bg-neutral-900 min-h-screen">
         <div className="flex items-center justify-center h-64">
           <div className="text-neutral-400">Loading profile...</div>
         </div>
@@ -465,7 +465,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="p-6 dark:bg-gradient-to-tl dark:from-purple-950 dark:via-neutral-900 dark:to-black bg-gradient-to-tl from-pink-300 via-white to-white min-h-screen">
+    <div className="p-6 bg-white dark:bg-neutral-900 min-h-screen">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-4">Club Profile</h1>
       </div>
