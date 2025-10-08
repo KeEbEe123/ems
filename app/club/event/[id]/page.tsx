@@ -177,7 +177,7 @@ export default function EventDashboard() {
   const renderCurrentPage = () => {
     if (isLoading) {
       return (
-        <div className="flex items-center justify-center h-full">
+        <div className="bg-white dark:bg-neutral-800 h-dvw w-dvw flex items-center justify-center">
           <div className="text-neutral-400">Loading event...</div>
         </div>
       );
