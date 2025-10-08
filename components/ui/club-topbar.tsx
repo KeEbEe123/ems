@@ -51,6 +51,12 @@ export const ClubTopBar = ({
             className="object-contain"
           />
         </div>
+        {/* Center - Session user name */}
+        <div className="flex-1 text-center pointer-events-none">
+          <span className="font-medium text-neutral-800 dark:text-neutral-200 truncate inline-block max-w-[50vw]">
+            {session?.user?.name ?? "User"}
+          </span>
+        </div>
 
         {/* Right side - User Info */}
         <div className="flex items-center gap-3">

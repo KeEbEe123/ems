@@ -17,12 +17,13 @@ import { AnalyticsPage } from "@/components/analytics-page";
 import React from "react";
 import { ClubTopBar } from "@/components/ui/club-topbar";
 import { Separator } from "@/components/ui/separator";
-import { Home, LogOut } from "lucide-react";
+import { Home, LogOut, ArrowLeft } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/lib/supabase/browserClient";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Router from "next/router";
 import { useSession } from "next-auth/react";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
 interface Event {
@@ -213,19 +214,33 @@ export default function EventDashboard() {
             <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
               <Logo />
               <div className="mt-8 flex flex-col gap-2">
-                {links.map((link) => (
-                  <React.Fragment key={link.id}>
-                    <div
-                      onClick={() => handleLinkClick(link.id)}
-                      className="cursor-pointer"
+                {event?.hosted === "iic" && currentPage === "after-event" ? (
+                  <div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Back to Club"
+                      onClick={() => (window.location.href = "/club")}
+                      className="h-9 w-9 pl-2"
                     >
-                      <SidebarLink link={link} />
-                    </div>
-                    {link.id === "after-event" && (
-                      <Separator className="my-4" />
-                    )}
-                  </React.Fragment>
-                ))}
+                      <ArrowLeft className="h-5 w-5 dark:text-neutral-200 text-neutral-700" />
+                    </Button>
+                  </div>
+                ) : (
+                  links.map((link) => (
+                    <React.Fragment key={link.id}>
+                      <div
+                        onClick={() => handleLinkClick(link.id)}
+                        className="cursor-pointer"
+                      >
+                        <SidebarLink link={link} />
+                      </div>
+                      {link.id === "after-event" && (
+                        <Separator className="my-4" />
+                      )}
+                    </React.Fragment>
+                  ))
+                )}
               </div>
             </div>
             <div className="flex flex-col items-start align-middle gap-2">
