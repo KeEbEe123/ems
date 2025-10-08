@@ -15,6 +15,7 @@ import { AfterEventPage } from "@/components/after-event-page";
 import { ParticipantsPage } from "@/components/participants-page";
 import { AnalyticsPage } from "@/components/analytics-page";
 import React from "react";
+import { ClubTopBar } from "@/components/ui/club-topbar";
 import { Separator } from "@/components/ui/separator";
 import { Home, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -22,6 +23,7 @@ import { supabase } from "@/lib/supabase/browserClient";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Router from "next/router";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 interface Event {
   id: string;
@@ -51,7 +53,12 @@ export default function EventDashboard() {
 
   // Sync section with URL hash (#event-info, #after-event, #participants, #analytics)
   useEffect(() => {
-    const allowed = ["event-info", "after-event", "participants", "analytics"] as const;
+    const allowed = [
+      "event-info",
+      "after-event",
+      "participants",
+      "analytics",
+    ] as const;
     const parseHash = () => {
       const h = (window.location.hash || "").replace("#", "");
       if (allowed.includes(h as any)) {
@@ -253,15 +260,16 @@ export default function EventDashboard() {
           </SidebarBody>
         </Sidebar>
       </div>
-      {/* Main content area with conditional IIC overlay (except on After Event page) */}
+      {/* Main content area with top bar and conditional IIC overlay (except on After Event page) */}
       <div className="relative flex-1 bg-neutral-900">
+        <ClubTopBar sidebarOpen={open} />
         {/** Underlying content gets blurred when overlay is active */}
         <div
           className={`${
             event?.hosted === "iic" && currentPage !== "after-event"
               ? "blur-lg"
               : ""
-          }`}
+          } pt-20`}
         >
           {renderCurrentPage()}
         </div>
@@ -297,14 +305,13 @@ export default function EventDashboard() {
 export const Logo = () => {
   return (
     <div className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal">
-      <div className="h-6 w-6 shrink-0 rounded dark:bg-white bg-neutral-600" />
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="font-medium whitespace-pre dark:text-white text-neutral-600"
-      >
-        Club
-      </motion.span>
+      <Image
+        src="/logos/cie.svg"
+        alt="CIE Logo"
+        width={50}
+        height={50}
+        className="object-contain"
+      />
     </div>
   );
 };

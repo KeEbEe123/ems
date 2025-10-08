@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,12 +15,31 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User } from "lucide-react";
 
-export const ClubTopBar = () => {
+export const ClubTopBar = ({
+  sidebarOpen = false,
+}: {
+  sidebarOpen?: boolean;
+}) => {
   const { data: session } = useSession();
   const router = useRouter();
+  const [vw, setVw] = useState<number>(
+    typeof window !== "undefined" ? window.innerWidth : 1024
+  );
+
+  useEffect(() => {
+    const onResize = () => setVw(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Left offset reacts to sidebar width on desktop, stays 0 on mobile
+  const left = vw >= 768 ? (sidebarOpen ? 200 : 60) : 0; // matches DesktopSidebar widths
 
   return (
-    <div className="fixed top-0 left-[200px] right-0 z-50 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-3">
+    <div
+      className="fixed top-0 right-0 z-50 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-4"
+      style={{ left }}
+    >
       <div className="flex items-center justify-between">
         {/* Left side - Logos */}
         <div className="flex items-center gap-6">

@@ -28,7 +28,7 @@ export default function StepperHeader({
     <div className="mb-8">
       {/* Active Step Title */}
       <div className="mb-2 text-center">
-        <p className="text-sm font-semibold text-white">
+        <p className="text-sm font-semibold">
           {activeStep ? activeStep.title : steps[0].title}
         </p>
       </div>
