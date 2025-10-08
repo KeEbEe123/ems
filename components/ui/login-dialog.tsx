@@ -2,11 +2,7 @@
 
 import React from "react";
 import { signIn } from "next-auth/react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 
 interface LoginDialogProps {
@@ -23,49 +19,45 @@ export function LoginDialog({ children, triggerClassName }: LoginDialogProps) {
 
   return (
     <Dialog>
-      <DialogTrigger className={triggerClassName}>
-        {children}
-      </DialogTrigger>
-      <DialogContent 
+      <DialogTrigger className={triggerClassName}>{children}</DialogTrigger>
+      <DialogContent
         className="max-w-3xl w-full p-0 overflow-hidden border-0 bg-transparent shadow-none"
         showCloseButton={false}
       >
-        <div className="flex items-center rounded-3xl overflow-hidden bg-[#141414] shadow-2xl relative">
+        <div className="flex items-center rounded-3xl overflow-hidden dark:bg-[#141414] bg-white shadow-2xl relative">
           {/* Violet gradient overlay from bottom-right to top-left */}
-          <div className="absolute inset-0 bg-gradient-to-tl from-violet-600/20 via-transparent to-transparent pointer-events-none" />
-          
+          <div className="absolute inset-0 bg-gradient-to-tl dark:from-violet-600/20 from-pink-100 via-transparent to-transparent pointer-events-none" />
+
           {/* Left Side - Logos stacked vertically */}
           <div className="flex-1 p-12 flex flex-col justify-center items-center gap-8 relative z-10">
-            <img 
-              src="/logos/cie.svg" 
-              alt="MLR CIE Logo" 
+            <img
+              src="/logos/mlrit.svg"
+              alt="MLRIT Logo"
               className="h-20 w-auto object-contain"
             />
-            <img 
-              src="/logos/mlrit.svg" 
-              alt="MLRIT Logo" 
-              className="h-20 w-auto object-contain"
-            />
-            <img 
-              src="/logos/iic.svg" 
-              alt="Institution's Innovation Council Logo" 
+            <img
+              src="/logos/iic.svg"
+              alt="Institution's Innovation Council Logo"
               className="h-24 w-auto object-contain"
             />
           </div>
-          
+
           {/* Vertical Separator */}
-          <Separator orientation="vertical" className="h-80 bg-white/10" />
-          
+          <Separator
+            orientation="vertical"
+            className="h-80 dark:bg-white/10 white-90"
+          />
+
           {/* Right Side - Sign In */}
           <div className="flex-1 p-12 flex flex-col justify-center items-center relative z-10">
             <div className="w-full max-w-sm text-center">
-              <h1 className="font-figtree text-xl font-semibold text-white mb-8">
+              <h1 className="font-figtree text-xl font-semibold mb-8">
                 Welcome Back
               </h1>
-              
+
               <button
                 onClick={handleGoogleSignIn}
-                className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-white font-figtree transition-all duration-200"
+                className="w-full flex items-center justify-center gap-3 px-6 py-3 dark:bg-white/10 hover:bg-white/20 border dark:border-white/20 border-black/20 rounded-full font-figtree transition-all duration-200"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
