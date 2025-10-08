@@ -49,6 +49,25 @@ export default function EventDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const { data: session } = useSession();
 
+  // Sync section with URL hash (#event-info, #after-event, #participants, #analytics)
+  useEffect(() => {
+    const allowed = ["event-info", "after-event", "participants", "analytics"] as const;
+    const parseHash = () => {
+      const h = (window.location.hash || "").replace("#", "");
+      if (allowed.includes(h as any)) {
+        setCurrentPage(h);
+      }
+    };
+
+    // Initial sync on mount / when navigating to a different event
+    parseHash();
+
+    // Keep state in sync when the hash changes (e.g., browser back/forward or external push)
+    const onHashChange = () => parseHash();
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [eventId]);
+
   useEffect(() => {
     if (eventId) {
       fetchEvent();
@@ -138,6 +157,10 @@ export default function EventDashboard() {
   const handleLinkClick = (id: string) => {
     if (id !== "menu") {
       setCurrentPage(id);
+      if (id !== "home" && id !== "logout") {
+        // Push hash so this page can be deep-linked and navigated via browser controls
+        window.location.hash = id;
+      }
     }
     if (id === "home") {
       window.location.href = "/club";
@@ -255,7 +278,10 @@ export default function EventDashboard() {
                 submission.
               </p>
               <button
-                onClick={() => setCurrentPage("after-event")}
+                onClick={() => {
+                  setCurrentPage("after-event");
+                  window.location.hash = "after-event";
+                }}
                 className="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-black hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-white/50"
               >
                 Go to Report Submission

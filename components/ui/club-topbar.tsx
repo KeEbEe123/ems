@@ -31,6 +31,10 @@ export const ClubTopBar = () => {
             height={120}
             className="object-contain"
           />
+        </div>
+
+        {/* Right side - User Info */}
+        <div className="flex items-center gap-3">
           <Image
             src="/logos/mlrit.svg"
             alt="MLRIT Logo"
@@ -38,17 +42,6 @@ export const ClubTopBar = () => {
             height={100}
             className="object-contain"
           />
-          <Image
-            src="/logos/cie.svg"
-            alt="CIE Logo"
-            width={50}
-            height={50}
-            className="object-contain"
-          />
-        </div>
-
-        {/* Right side - User Info */}
-        <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full">

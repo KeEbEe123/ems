@@ -124,13 +124,14 @@ export default function EventsPage() {
     console.log(sessionUserId);
 
     try {
-      // IIC events for this user's club (filter via join on clubs.email)
+      // IIC events for this user's club
       const { data: iicData, error: iicErr } = await supabase
         .from("events")
         .select(
           "id, name, start_datetime, end_datetime, event_type, status, created_at, description, semester, quarter, date_range, hosted, clubs(owner_id), club_id"
         )
         .eq("hosted", "iic")
+        .eq("club_id", sessionUserId)
         .eq("status", "approved")
         .order("created_at", { ascending: false });
       if (iicErr) console.error("IIC error:", iicErr.message);
@@ -611,7 +612,7 @@ export default function EventsPage() {
         <Card className="bg-white dark:bg-neutral-900 border-0 h-full flex flex-col">
           <CardHeader className="flex-none">
             <CardTitle
-              className="text-black dark:text-white text-base leading-snug break-words text-lg"
+              className="text-black dark:text-white leading-snug break-words text-lg"
               title={event.name}
             >
               {event.name}
@@ -711,7 +712,6 @@ export default function EventsPage() {
 
   return (
     <div className="min-h-screen p-6 bg-white dark:bg-neutral-900">
-
       {/* Create Event Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
@@ -1048,10 +1048,25 @@ export default function EventsPage() {
       </Dialog>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="iic">IIC Events</TabsTrigger>
-          <TabsTrigger value="self-hosted">Self Hosted Events</TabsTrigger>
-          <TabsTrigger value="calendar">My Event Calendar</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 mb-6 bg-transparent p-0">
+          <TabsTrigger
+            value="iic"
+            className="bg-transparent shadow-none rounded-none border-b-2 border-transparent px-0 py-6 text-neutral-600 hover:text-neutral-800 data-[state=active]:border-b-blue-600 dark:data-[state=active]:border-b-blue-600 data-[state=active]:text-black dark:text-neutral-300 dark:hover:text-neutral-100 dark:data-[state=active]:text-white"
+          >
+            IIC Events
+          </TabsTrigger>
+          <TabsTrigger
+            value="self-hosted"
+            className="bg-transparent shadow-none rounded-none border-b-2 border-transparent px-0 py-6 text-neutral-600 hover:text-neutral-800 data-[state=active]:border-b-blue-600 dark:data-[state=active]:border-b-blue-600 data-[state=active]:text-black dark:text-neutral-300 dark:hover:text-neutral-100 dark:data-[state=active]:text-white"
+          >
+            Self Driven Events
+          </TabsTrigger>
+          <TabsTrigger
+            value="calendar"
+            className="bg-transparent shadow-none rounded-none border-b-2 border-transparent px-0 py-6 text-neutral-600 hover:text-neutral-800 data-[state=active]:border-b-blue-600 dark:data-[state=active]:border-b-blue-600 data-[state=active]:text-black dark:text-neutral-300 dark:hover:text-neutral-100 dark:data-[state=active]:text-white"
+          >
+            My Event Calendar
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="iic" className="mt-8">
@@ -1127,7 +1142,11 @@ export default function EventsPage() {
         </TabsContent>
 
         <TabsContent value="self-hosted" className="mt-8">
-          <Tabs value={selfHostedTab} onValueChange={setSelfHostedTab} className="w-full">
+          <Tabs
+            value={selfHostedTab}
+            onValueChange={setSelfHostedTab}
+            className="w-full"
+          >
             <div className="flex justify-end mb-6">
               <TabsList className="inline-flex w-auto">
                 <TabsTrigger value="current">Current</TabsTrigger>
@@ -1186,26 +1205,43 @@ export default function EventsPage() {
                     <TableRow>
                       <TableHead className="w-16">S.No.</TableHead>
                       <TableHead>Title of Activity</TableHead>
-                      <TableHead className="text-center">View Activity Details</TableHead>
-                      <TableHead className="text-center">Upload Activity Report</TableHead>
-                      <TableHead className="text-center">Correct Status of Report Submission</TableHead>
+                      <TableHead className="text-center">
+                        View Activity Details
+                      </TableHead>
+                      <TableHead className="text-center">
+                        Upload Activity Report
+                      </TableHead>
+                      <TableHead className="text-center">
+                        Correct Status of Report Submission
+                      </TableHead>
                       <TableHead>Reviewer&apos;s Comment</TableHead>
-                      <TableHead className="text-center">Review for Request</TableHead>
-                      <TableHead className="text-center">Download Report</TableHead>
+                      <TableHead className="text-center">
+                        Review for Request
+                      </TableHead>
+                      <TableHead className="text-center">
+                        Download Report
+                      </TableHead>
                       <TableHead className="text-center">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center text-neutral-400 py-8">
+                        <TableCell
+                          colSpan={9}
+                          className="text-center text-neutral-400 py-8"
+                        >
                           Loading calendar events...
                         </TableCell>
                       </TableRow>
                     ) : calendarEvents.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center text-neutral-400 py-8">
-                          No events added to calendar yet. Add IIC events from the IIC Events tab.
+                        <TableCell
+                          colSpan={9}
+                          className="text-center text-neutral-400 py-8"
+                        >
+                          No events added to calendar yet. Add IIC events from
+                          the IIC Events tab.
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -1215,19 +1251,42 @@ export default function EventsPage() {
 
                         return (
                           <TableRow key={calEvent.id}>
-                            <TableCell className="font-medium">{index + 1}</TableCell>
+                            <TableCell className="font-medium">
+                              {index + 1}
+                            </TableCell>
                             <TableCell>
                               <div>
                                 <p className="font-semibold">{event.name}</p>
                                 <p className="text-xs text-neutral-500">
                                   {event.quarter && event.semester && (
                                     <span>
-                                      {event.semester.replace("-", " ").split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")} - {event.quarter.replace("-", " ").split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+                                      {event.semester
+                                        .replace("-", " ")
+                                        .split(" ")
+                                        .map(
+                                          (word) =>
+                                            word.charAt(0).toUpperCase() +
+                                            word.slice(1)
+                                        )
+                                        .join(" ")}{" "}
+                                      -{" "}
+                                      {event.quarter
+                                        .replace("-", " ")
+                                        .split(" ")
+                                        .map(
+                                          (word) =>
+                                            word.charAt(0).toUpperCase() +
+                                            word.slice(1)
+                                        )
+                                        .join(" ")}
                                     </span>
                                   )}
                                 </p>
                                 <p className="text-xs text-neutral-500">
-                                  Type: {event.event_type === "paid" ? "Paid" : "Free"}
+                                  Type:{" "}
+                                  {event.event_type === "paid"
+                                    ? "Paid"
+                                    : "Free"}
                                 </p>
                               </div>
                             </TableCell>
@@ -1244,7 +1303,11 @@ export default function EventsPage() {
                             <TableCell className="text-center">
                               <Button
                                 size="sm"
-                                onClick={() => router.push(`/club/event/${event.id}#after-event`)}
+                                onClick={() =>
+                                  router.push(
+                                    `/club/event/${event.id}#after-event`
+                                  )
+                                }
                                 className="bg-blue-600 hover:bg-blue-700 text-white"
                               >
                                 <Upload className="w-4 h-4 mr-1" />
@@ -1264,10 +1327,14 @@ export default function EventsPage() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <p className="text-sm">{calEvent.reviewer_comment || "NA"}</p>
+                              <p className="text-sm">
+                                {calEvent.reviewer_comment || "NA"}
+                              </p>
                             </TableCell>
                             <TableCell className="text-center">
-                              <p className="text-sm">{calEvent.review_request || "NA"}</p>
+                              <p className="text-sm">
+                                {calEvent.review_request || "NA"}
+                              </p>
                             </TableCell>
                             <TableCell className="text-center">
                               <Button
@@ -1284,7 +1351,11 @@ export default function EventsPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={async () => {
-                                  if (confirm("Are you sure you want to remove this event from your calendar?")) {
+                                  if (
+                                    confirm(
+                                      "Are you sure you want to remove this event from your calendar?"
+                                    )
+                                  ) {
                                     const { error } = await supabase
                                       .from("club_event_calendar")
                                       .delete()

@@ -3,12 +3,16 @@
 import React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { PermanentSidebar, PermanentSidebarLink } from "@/components/ui/permanent-sidebar";
+import {
+  PermanentSidebar,
+  PermanentSidebarLink,
+} from "@/components/ui/permanent-sidebar";
 import { ClubTopBar } from "@/components/ui/club-topbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useSession } from "next-auth/react";
 import { CalendarDays, User } from "lucide-react";
+import Image from "next/image";
 
 export default function ClubLayout({
   children,
@@ -26,7 +30,7 @@ export default function ClubLayout({
 
   const links = [
     {
-      label: "Your Events",
+      label: `${session?.user?.name}'s Events`,
       href: "/club",
       icon: (
         <CalendarDays className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
@@ -89,14 +93,13 @@ export default function ClubLayout({
 export const Logo = () => {
   return (
     <div className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal">
-      <div className="h-6 w-6 shrink-0 rounded dark:bg-white bg-neutral-600" />
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="font-medium whitespace-pre dark:text-white text-neutral-600"
-      >
-        Club
-      </motion.span>
+      <Image
+        src="/logos/cie.svg"
+        alt="CIE Logo"
+        width={50}
+        height={50}
+        className="object-contain"
+      />
     </div>
   );
 };

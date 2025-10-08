@@ -62,6 +62,7 @@ export function IICEventCalendar() {
   const [open, setOpen] = useState(false);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [isLoadingClubs, setIsLoadingClubs] = useState(false);
+  const [selectedClubId, setSelectedClubId] = useState<string>("");
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -143,6 +144,7 @@ export function IICEventCalendar() {
 
       if (semester) query = query.eq("semester", semester);
       if (quarter) query = query.eq("quarter", quarter);
+      if (selectedClubId) query = query.eq("club_id", selectedClubId);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -173,26 +175,33 @@ export function IICEventCalendar() {
   useEffect(() => {
     fetchEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSemester]);
+  }, [selectedSemester, selectedClubId]);
+
+  // Reusable function to load clubs
+  const fetchClubs = async () => {
+    try {
+      setIsLoadingClubs(true);
+      const { data, error } = await supabase
+        .from("clubs")
+        .select("id, name, avatar_url")
+        .order("name", { ascending: true });
+      if (error) throw error;
+      setClubs((data as Club[]) || []);
+    } catch (e: any) {
+      console.error("Failed to load clubs", e?.message || e);
+      setClubs([]);
+    } finally {
+      setIsLoadingClubs(false);
+    }
+  };
+
+  // Load clubs for both dialog and filter usage
+  useEffect(() => {
+    fetchClubs();
+  }, []);
 
   useEffect(() => {
     if (!open) return;
-    const fetchClubs = async () => {
-      try {
-        setIsLoadingClubs(true);
-        const { data, error } = await supabase
-          .from("clubs")
-          .select("id, name, avatar_url")
-          .order("name", { ascending: true });
-        if (error) throw error;
-        setClubs((data as Club[]) || []);
-      } catch (e: any) {
-        console.error("Failed to load clubs", e?.message || e);
-        setClubs([]);
-      } finally {
-        setIsLoadingClubs(false);
-      }
-    };
     fetchClubs();
   }, [open]);
 
@@ -384,6 +393,31 @@ export function IICEventCalendar() {
               >
                 Semester 2 - Quarter 4
               </SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Club filter */}
+          <Select value={selectedClubId || "all"} onValueChange={(v) => setSelectedClubId(v === "all" ? "" : v)}>
+            <SelectTrigger className="w-72 bg-neutral-800 border-neutral-700 text-white">
+              <SelectValue placeholder={isLoadingClubs ? "Loading clubs..." : "Filter by Club (All)"} />
+            </SelectTrigger>
+            <SelectContent className="bg-neutral-800 border-neutral-700">
+              <SelectItem value="all" className="text-white hover:bg-neutral-700">
+                All Clubs
+              </SelectItem>
+              {clubs.map((c) => (
+                <SelectItem key={c.id} value={c.id} className="text-white hover:bg-neutral-700">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={c.avatar_url || ""} alt={c.name} />
+                      <AvatarFallback>
+                        {c.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>{c.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 

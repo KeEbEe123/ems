@@ -6,6 +6,7 @@ import { Poppins } from "next/font/google";
 import { Figtree } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import Footer from "@/components/ui/footer";
 
 export const metadata: Metadata = {
   title: "Club Event Dashboard",
@@ -55,6 +56,7 @@ export default function RootLayout({
             {children}
           </main>
         </Providers>
+        <Footer />
       </body>
     </html>
   );

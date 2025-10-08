@@ -518,9 +518,9 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
   const isStepAccessible = (stepId: number) => stepId <= currentStep;
 
   return (
-    <div className="p-6">
+    <div className="bg-white dark:bg-neutral-950 p-6">
       <div className="mb-8">
-        <h1 className="text-white text-lg font-medium mb-8">
+        <h1 className="text-lg font-medium mb-8">
           Club - Event Dashboard - After Event Page
         </h1>
         <StepperHeader
@@ -530,47 +530,41 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
         />
       </div>
 
-      <div className="space-y-6">
-        {isStepAccessible(0) && (
-          <ReportStepCard
-            isActive={isStepActive(0)}
-            isCompleted={isStepCompleted(0)}
-            formData={formData}
-            updateFormData={updateFormData}
-            validationErrors={validationErrors}
-            isSubmitting={isSubmitting}
-            completeStep={completeStep}
-          />
-        )}
+      <div className="space-y-6 bg-transparent">
+        <ReportStepCard
+          isActive={isStepActive(0)}
+          isCompleted={isStepCompleted(0)}
+          formData={formData}
+          updateFormData={updateFormData}
+          validationErrors={validationErrors}
+          isSubmitting={isSubmitting}
+          completeStep={completeStep}
+        />
 
-        {isStepAccessible(1) && (
-          <UploadsStepCard
-            isActive={isStepActive(1)}
-            isCompleted={isStepCompleted(1)}
-            isSubmitting={isSubmitting}
-            fileUploads={fileUploads}
-            imageInputRef={imageInputRef}
-            videoInputRef={videoInputRef}
-            reportInputRef={reportInputRef}
-            handleFileUpload={handleFileUpload}
-            removeFile={removeFile}
-            validationErrors={validationErrors}
-            completeStep={completeStep}
-          />
-        )}
+        <UploadsStepCard
+          isActive={isStepActive(1)}
+          isCompleted={isStepCompleted(1)}
+          isSubmitting={isSubmitting}
+          fileUploads={fileUploads}
+          imageInputRef={imageInputRef}
+          videoInputRef={videoInputRef}
+          reportInputRef={reportInputRef}
+          handleFileUpload={handleFileUpload}
+          removeFile={removeFile}
+          validationErrors={validationErrors}
+          completeStep={completeStep}
+        />
 
-        {isStepAccessible(2) && (
-          <SocialStepCard
-            isActive={isStepActive(2)}
-            isCompleted={isStepCompleted(2)}
-            isSubmitting={isSubmitting}
-            formData={formData}
-            updateFormData={updateFormData}
-            socialMediaChecked={socialMediaChecked}
-            setSocialMediaChecked={setSocialMediaChecked}
-            completeStep={completeStep}
-          />
-        )}
+        <SocialStepCard
+          isActive={isStepActive(2)}
+          isCompleted={isStepCompleted(2)}
+          isSubmitting={isSubmitting}
+          formData={formData}
+          updateFormData={updateFormData}
+          socialMediaChecked={socialMediaChecked}
+          setSocialMediaChecked={setSocialMediaChecked}
+          completeStep={completeStep}
+        />
       </div>
 
       {completedSteps.length === steps.length && <CompletionCard />}
