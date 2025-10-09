@@ -336,6 +336,25 @@ export default function ReportStepCard({
           </div>
         </div>
 
+        <div>
+          <Label htmlFor="activity-lead">Activity Lead By *</Label>
+          <Input
+            id="activity-lead"
+            value={formData.activityLead}
+            onChange={(e) => updateFormData("activityLead", e.target.value)}
+            placeholder="e.g., Dr. John Doe, Prof. Jane Smith"
+            className={`border-neutral-700 mt-2 ${
+              validationErrors.activityLead ? "border-red-500" : ""
+            }`}
+          />
+          {validationErrors.activityLead && (
+            <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {validationErrors.activityLead}
+            </p>
+          )}
+        </div>
+
         <div className="border-t border-neutral-700 pt-6">
           <h3 className="text-lg font-medium mb-4">Overview</h3>
           <div className="grid grid-cols-2 gap-4">

@@ -11,6 +11,7 @@ import {
   Youtube,
   Globe,
   Mail,
+  Phone,
 } from "lucide-react";
 
 export default function Footer() {
@@ -21,7 +22,7 @@ export default function Footer() {
           {/* Left: Logos */}
           <div className="flex flex-col items-start gap-6 shrink-0">
             <Image
-              src="/logos/cie.svg"
+              src="/logos/cie.png"
               alt="CIE"
               width={128}
               height={64}
@@ -36,7 +37,7 @@ export default function Footer() {
               className="h-auto w-36"
             />
             <Image
-              src="/logos/iic.svg"
+              src="/logos/iic.png"
               alt="Institution's Innovation Council"
               width={180}
               height={80}
@@ -139,14 +140,14 @@ export default function Footer() {
               <h3 className="text-4xl font-semibold mb-4">Contact Us</h3>
               <ul className="space-y-3 text-xl">
                 <li className="inline-flex items-center gap-3">
-                  <Globe className="size-5" aria-hidden="true" />
+                  <Phone className="size-5" aria-hidden="true" />
                   <a
-                    href="https://mlrit.ac.in"
+                    href="tel:+919951312204"
                     target="_blank"
                     rel="noreferrer"
                     className="hover:opacity-90 transition-opacity"
                   >
-                    https://mlrit.ac.in
+                    +91 99513 12204
                   </a>
                 </li>
                 <li className="inline-flex items-center gap-3">

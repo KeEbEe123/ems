@@ -94,7 +94,7 @@ export const Logo = () => {
   return (
     <div className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal">
       <Image
-        src="/logos/cie.svg"
+        src="/logos/cie.png"
         alt="CIE Logo"
         width={50}
         height={50}

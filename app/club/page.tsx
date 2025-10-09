@@ -1053,13 +1053,13 @@ export default function EventsPage() {
             value="iic"
             className="bg-transparent shadow-none rounded-none border-b-2 border-transparent px-0 py-6 text-neutral-600 hover:text-neutral-800 data-[state=active]:border-b-blue-600 dark:data-[state=active]:border-b-blue-600 data-[state=active]:text-black dark:text-neutral-300 dark:hover:text-neutral-100 dark:data-[state=active]:text-white"
           >
-            IIC Events
+            IIC Activities
           </TabsTrigger>
           <TabsTrigger
             value="self-hosted"
             className="bg-transparent shadow-none rounded-none border-b-2 border-transparent px-0 py-6 text-neutral-600 hover:text-neutral-800 data-[state=active]:border-b-blue-600 dark:data-[state=active]:border-b-blue-600 data-[state=active]:text-black dark:text-neutral-300 dark:hover:text-neutral-100 dark:data-[state=active]:text-white"
           >
-            Self Driven Events
+            Self Driven Activities
           </TabsTrigger>
           <TabsTrigger
             value="calendar"

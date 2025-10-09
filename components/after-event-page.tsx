@@ -223,27 +223,42 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
   // File upload handlers
   const handleFileUpload = (
     type: "images" | "video" | "report",
-    files: FileList | null
+    files: FileList | null,
+    targetIndex?: number
   ) => {
     if (!files) return;
 
     const errors: ValidationErrors = {};
 
     if (type === "images") {
-      const validFiles: File[] = [];
-      for (let i = 0; i < Math.min(files.length, 3); i++) {
-        const file = files[i];
-        if (file.size > 3 * 1024 * 1024) {
-          errors.eventImages = `Image ${file.name} exceeds 3MB limit`;
-          continue;
-        }
-        if (!file.type.startsWith("image/")) {
-          errors.eventImages = `${file.name} is not a valid image file`;
-          continue;
-        }
-        validFiles.push(file);
+      const file = files[0]; // Take only the first file
+      if (file.size > 3 * 1024 * 1024) {
+        errors.eventImages = `Image ${file.name} exceeds 3MB limit`;
+        setValidationErrors((prev) => ({ ...prev, ...errors }));
+        return;
       }
-      setFileUploads((prev) => ({ ...prev, eventImages: validFiles }));
+      if (!file.type.startsWith("image/")) {
+        errors.eventImages = `${file.name} is not a valid image file`;
+        setValidationErrors((prev) => ({ ...prev, ...errors }));
+        return;
+      }
+      
+      // Add or replace image at specific index
+      setFileUploads((prev) => {
+        const newImages = [...prev.eventImages];
+        if (targetIndex !== undefined) {
+          newImages[targetIndex] = file;
+        } else {
+          // Find first empty slot
+          const emptyIndex = newImages.findIndex((img) => !img);
+          if (emptyIndex !== -1) {
+            newImages[emptyIndex] = file;
+          } else if (newImages.length < 3) {
+            newImages.push(file);
+          }
+        }
+        return { ...prev, eventImages: newImages };
+      });
     } else if (type === "video") {
       const file = files[0];
       if (file.size > 200 * 1024 * 1024) {
@@ -518,19 +533,23 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
   const isStepAccessible = (stepId: number) => stepId <= currentStep;
 
   return (
-    <div className="bg-white dark:bg-neutral-950 p-6">
-      <div className="mb-8">
-        <h1 className="text-lg font-medium mb-8">
-          Club - Event Dashboard - After Event Page
-        </h1>
-        <StepperHeader
-          steps={steps}
-          isStepCompleted={isStepCompleted}
-          isStepActive={isStepActive}
-        />
+    <div className="bg-white dark:bg-neutral-950">
+      {/* Sticky Header Section */}
+      <div className="sticky top-5 z-40 bg-white dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 shadow-sm">
+        <div className="p-6 pb-4">
+          <h1 className="text-lg font-medium mb-4">
+            Club - Event Dashboard - After Event Page
+          </h1>
+          <StepperHeader
+            steps={steps}
+            isStepCompleted={isStepCompleted}
+            isStepActive={isStepActive}
+          />
+        </div>
       </div>
 
-      <div className="space-y-6 bg-transparent">
+      {/* Scrollable Content */}
+      <div className="p-6 space-y-6 bg-transparent">
         <ReportStepCard
           isActive={isStepActive(0)}
           isCompleted={isStepCompleted(0)}

@@ -37,14 +37,14 @@ export const ClubTopBar = ({
 
   return (
     <div
-      className="fixed top-0 right-0 z-50 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-4"
+      className="fixed top-0 right-0 z-50 ml-34 bg-blue-950 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-4"
       style={{ left }}
     >
       <div className="flex items-center justify-between">
         {/* Left side - Logos */}
         <div className="flex items-center gap-6">
           <Image
-            src="/logos/iic.svg"
+            src="/logos/iic.png"
             alt="IIC Logo"
             width={120}
             height={120}
@@ -53,7 +53,7 @@ export const ClubTopBar = ({
         </div>
         {/* Center - Session user name */}
         <div className="flex-1 text-center pointer-events-none">
-          <span className="font-medium text-neutral-800 dark:text-neutral-200 truncate inline-block max-w-[50vw]">
+          <span className="font-medium text-white dark:text-neutral-200 truncate inline-block max-w-[50vw]">
             {session?.user?.name ?? "User"}
           </span>
         </div>
