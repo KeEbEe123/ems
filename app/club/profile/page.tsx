@@ -12,7 +12,14 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { CalendarDays, Award, ImageIcon, Pencil, Trash2, Plus } from "lucide-react";
+import {
+  CalendarDays,
+  Award,
+  ImageIcon,
+  Pencil,
+  Trash2,
+  Plus,
+} from "lucide-react";
 import Image from "next/image";
 import {
   Dialog,
@@ -107,9 +114,12 @@ export default function ProfilePage() {
   const [updateError, setUpdateError] = useState<string | null>(null);
 
   // Student Council state
-  const [studentCouncil, setStudentCouncil] = useState<StudentCouncilMember[]>([]);
+  const [studentCouncil, setStudentCouncil] = useState<StudentCouncilMember[]>(
+    []
+  );
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<StudentCouncilMember | null>(null);
+  const [editingStudent, setEditingStudent] =
+    useState<StudentCouncilMember | null>(null);
   const [studentForm, setStudentForm] = useState({
     role: "",
     name: "",
@@ -122,9 +132,12 @@ export default function ProfilePage() {
   });
 
   // Faculty Council state
-  const [facultyCouncil, setFacultyCouncil] = useState<FacultyCouncilMember[]>([]);
+  const [facultyCouncil, setFacultyCouncil] = useState<FacultyCouncilMember[]>(
+    []
+  );
   const [isFacultyModalOpen, setIsFacultyModalOpen] = useState(false);
-  const [editingFaculty, setEditingFaculty] = useState<FacultyCouncilMember | null>(null);
+  const [editingFaculty, setEditingFaculty] =
+    useState<FacultyCouncilMember | null>(null);
   const [facultyForm, setFacultyForm] = useState({
     role: "",
     name: "",
@@ -413,7 +426,9 @@ export default function ProfilePage() {
         department: facultyForm.department || null,
         designation: facultyForm.designation || null,
         qualification: facultyForm.qualification || null,
-        experience: facultyForm.experience ? parseInt(facultyForm.experience) : null,
+        experience: facultyForm.experience
+          ? parseInt(facultyForm.experience)
+          : null,
       };
 
       if (editingFaculty) {
@@ -466,196 +481,212 @@ export default function ProfilePage() {
 
   return (
     <div className="p-6 bg-white dark:bg-neutral-900 min-h-screen">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-4">Club Profile</h1>
-      </div>
+      <div className="mb-6"></div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="student-council">Student Council</TabsTrigger>
-          <TabsTrigger value="faculty-council">Faculty Council</TabsTrigger>
+      <Tabs defaultValue="overview" className="w-full mb-6 bg-transparent p-0">
+        <TabsList className="grid w-full grid-cols-3 mb-12 bg-transparent p-0">
+          <TabsTrigger
+            value="overview"
+            className="bg-transparent shadow-none rounded-none border-b-2 border-transparent px-0 py-6 text-neutral-600 hover:text-neutral-800 data-[state=active]:border-b-blue-600 dark:data-[state=active]:border-b-blue-600 data-[state=active]:text-black dark:text-neutral-300 dark:hover:text-neutral-100 dark:data-[state=active]:text-white"
+          >
+            Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="student-council"
+            className="bg-transparent shadow-none rounded-none border-b-2 border-transparent px-0 py-6 text-neutral-600 hover:text-neutral-800 data-[state=active]:border-b-blue-600 dark:data-[state=active]:border-b-blue-600 data-[state=active]:text-black dark:text-neutral-300 dark:hover:text-neutral-100 dark:data-[state=active]:text-white"
+          >
+            Student Council
+          </TabsTrigger>
+          <TabsTrigger
+            value="faculty-council"
+            className="bg-transparent shadow-none rounded-none border-b-2 border-transparent px-0 py-6 text-neutral-600 hover:text-neutral-800 data-[state=active]:border-b-blue-600 dark:data-[state=active]:border-b-blue-600 data-[state=active]:text-black dark:text-neutral-300 dark:hover:text-neutral-100 dark:data-[state=active]:text-white"
+          >
+            Faculty Council
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
-
-      <div className="grid grid-cols-4 grid-rows-4 gap-4 h-full min-h-[700px]">
-        {/* Avatar Card (spans 2 columns, 1 row) */}
-        <Card className="border-neutral-700 col-span-2 row-span-1">
-          <CardContent className="flex items-center justify-between p-4 h-full">
-            <div className="flex items-center space-x-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage
-                  src={session?.user?.image ?? ""}
-                  alt={session?.user?.name ?? "User"}
-                />
-                <AvatarFallback className="bg-neutral-700 text-white">
-                  {(session?.user?.name?.[0] ?? "U").toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-semibold">
-                    {profileData?.name || session?.user?.name || "Club Name"}
-                  </h2>
-                  <button
-                    onClick={openEditModal}
-                    className="text-neutral-400 hover:text-white transition-colors"
-                    title="Edit profile"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
+          <div className="grid grid-cols-4 grid-rows-4 gap-4 h-full min-h-[700px]">
+            {/* Avatar Card (spans 2 columns, 1 row) */}
+            <Card className="border-neutral-700 col-span-2 row-span-1">
+              <CardContent className="flex items-center justify-between p-4 h-full">
+                <div className="flex items-center space-x-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage
+                      src={session?.user?.image ?? ""}
+                      alt={session?.user?.name ?? "User"}
+                    />
+                    <AvatarFallback className="bg-neutral-700 text-white">
+                      {(session?.user?.name?.[0] ?? "U").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-2xl font-semibold">
+                        {profileData?.name ||
+                          session?.user?.name ||
+                          "Club Name"}
+                      </h2>
+                      <button
+                        onClick={openEditModal}
+                        className="text-neutral-400 hover:text-white transition-colors"
+                        title="Edit profile"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <p className="text-neutral-400 text-sm">
+                      {session?.user?.email ?? ""}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-neutral-400 text-sm">
-                  {session?.user?.email ?? ""}
-                </p>
-              </div>
+              </CardContent>
+            </Card>
+
+            {/* Stats Cards (spans 1 column, 2 rows) */}
+            <div className="col-span-1 row-span-2 flex flex-col gap-2">
+              <Card className="border-neutral-700 flex-1 bg-gradient-to-tl dark:from-purple-600 dark:via-neutral-900 dark:to-black from-pink-500 via-white to-white">
+                <CardContent className="p-3 h-full flex flex-col justify-between">
+                  <div className="flex items-start gap-2 mb-2 text-left">
+                    <p className="text-lg font-semibold -mt-4">
+                      Self Driven Events
+                    </p>
+                  </div>
+                  <p className="text-6xl font-bold self-end text-right mr-2">
+                    {stats.selfDrivenCount}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-neutral-700 bg-gradient-to-tl from-[#3A3CBA] via-[#FF1D1D] to-[#FCB045] flex-1">
+                <CardContent className="p-3 h-full flex flex-col justify-between">
+                  <div className="flex items-start gap-2 mb-2 text-left">
+                    <p className="text-lg font-semibold -mt-4">IIC Events</p>
+                  </div>
+                  <p className="text-6xl font-bold self-end text-right mr-2">
+                    {stats.iicEventsCount}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-neutral-700 flex-1">
+                <CardContent className="p-3 h-full flex flex-col justify-between">
+                  <div className="flex items-start gap-2 mb-2 text-left">
+                    <p className="text-lg font-semibold -mt-4">Banner Count</p>
+                  </div>
+                  <p className="text-6xl font-bold self-end text-right mr-2">
+                    {stats.banners.length}
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Stats Cards (spans 1 column, 2 rows) */}
-        <div className="col-span-1 row-span-2 flex flex-col gap-2">
-          <Card className="border-neutral-700 flex-1 bg-gradient-to-tl dark:from-purple-600 dark:via-neutral-900 dark:to-black from-pink-500 via-white to-white">
-            <CardContent className="p-3 h-full flex flex-col justify-between">
-              <div className="flex items-start gap-2 mb-2 text-left">
-                <p className="text-lg font-semibold -mt-4">
-                  Self Driven Events
-                </p>
-              </div>
-              <p className="text-6xl font-bold self-end text-right mr-2">
-                {stats.selfDrivenCount}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-neutral-700 bg-gradient-to-tl from-[#3A3CBA] via-[#FF1D1D] to-[#FCB045] flex-1">
-            <CardContent className="p-3 h-full flex flex-col justify-between">
-              <div className="flex items-start gap-2 mb-2 text-left">
-                <p className="text-lg font-semibold -mt-4">IIC Events</p>
-              </div>
-              <p className="text-6xl font-bold self-end text-right mr-2">
-                {stats.iicEventsCount}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-neutral-700 flex-1">
-            <CardContent className="p-3 h-full flex flex-col justify-between">
-              <div className="flex items-start gap-2 mb-2 text-left">
-                <p className="text-lg font-semibold -mt-4">Banner Count</p>
-              </div>
-              <p className="text-6xl font-bold self-end text-right mr-2">
-                {stats.banners.length}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Notifications Card (spans 1 column, 2 rows) */}
+            <Card className="border-neutral-700 col-span-1 row-span-2">
+              <CardHeader>
+                <CardTitle className="text-2xl">Notifications</CardTitle>
+              </CardHeader>
+              <CardContent className="text-neutral-400">
+                No new notifications
+              </CardContent>
+            </Card>
 
-        {/* Notifications Card (spans 1 column, 2 rows) */}
-        <Card className="border-neutral-700 col-span-1 row-span-2">
-          <CardHeader>
-            <CardTitle className="text-2xl">Notifications</CardTitle>
-          </CardHeader>
-          <CardContent className="text-neutral-400">
-            No new notifications
-          </CardContent>
-        </Card>
-
-        {/* About Card (spans 2 columns, 2 rows) */}
-        <Card className="border-neutral-700 col-span-2 row-span-2">
-          <CardHeader>
-            <CardTitle className="text-2xl">About</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {profileData?.about ? (
-              <p className="dark:text-neutral-300 text-neutral-600 text-lg leading-relaxed">
-                {profileData.about}
-              </p>
-            ) : (
-              <p className="text-neutral-400 text-sm">
-                No description available. Add an about section to your events to
-                see it here.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Gallery Card (spans 2 columns, 2 rows) */}
-        <Card className="border-neutral-700 col-span-2 row-span-2">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <ImageIcon className="h-5 w-5" />
-              Event Gallery
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="relative overflow-hidden">
-            {stats.banners.length > 0 ? (
-              <Carousel
-                opts={{ align: "center", loop: true }}
-                plugins={[plugin.current as any]}
-              >
-                <CarouselContent>
-                  {stats.banners.map((bannerUrl, index) => (
-                    <CarouselItem key={index}>
-                      <div className="relative aspect-video bg-neutral-800 rounded-lg overflow-hidden">
-                        <Image
-                          src={bannerUrl}
-                          alt={`Event banner ${index + 1}`}
-                          fill
-                          className="object-contain hover:scale-105 transition-transform duration-200"
-                          sizes="(min-width: 768px) 50vw, 100vw"
-                        />
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-              </Carousel>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <ImageIcon className="h-12 w-12 text-neutral-600 mb-4" />
-                <p className="text-neutral-400 text-sm">
-                  No event banners available yet.
-                </p>
-                <p className="text-neutral-500 text-xs mt-2">
-                  Event banners will appear here once you create self-driven
-                  events.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Faculty Coordinator Card (spans 2 columns, 1 row) */}
-        <Card className="border-neutral-700 col-span-2 row-span-1">
-          <CardHeader>
-            <CardTitle className="text-2xl">Faculty Coordinator</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {profileData?.faculty_coordinator ? (
-              <div>
-                <p className="font-semibold text-4xl">
-                  {profileData.faculty_coordinator}
-                </p>
-                {profileData.faculty_coordinator_designation && (
-                  <p className="text-neutral-400 text-lg">
-                    {profileData.faculty_coordinator_designation}
+            {/* About Card (spans 2 columns, 2 rows) */}
+            <Card className="border-neutral-700 col-span-2 row-span-2">
+              <CardHeader>
+                <CardTitle className="text-2xl">About</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {profileData?.about ? (
+                  <p className="dark:text-neutral-300 text-neutral-600 text-lg leading-relaxed">
+                    {profileData.about}
+                  </p>
+                ) : (
+                  <p className="text-neutral-400 text-sm">
+                    No description available. Add an about section to your
+                    events to see it here.
                   </p>
                 )}
-              </div>
-            ) : (
-              <p className="text-neutral-400 text-sm">
-                No faculty coordinator information available.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              </CardContent>
+            </Card>
+
+            {/* Gallery Card (spans 2 columns, 2 rows) */}
+            <Card className="border-neutral-700 col-span-2 row-span-2">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5" />
+                  Event Gallery
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="relative overflow-hidden">
+                {stats.banners.length > 0 ? (
+                  <Carousel
+                    opts={{ align: "center", loop: true }}
+                    plugins={[plugin.current as any]}
+                  >
+                    <CarouselContent>
+                      {stats.banners.map((bannerUrl, index) => (
+                        <CarouselItem key={index}>
+                          <div className="relative aspect-video bg-neutral-800 rounded-lg overflow-hidden">
+                            <Image
+                              src={bannerUrl}
+                              alt={`Event banner ${index + 1}`}
+                              fill
+                              className="object-contain hover:scale-105 transition-transform duration-200"
+                              sizes="(min-width: 768px) 50vw, 100vw"
+                            />
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                  </Carousel>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <ImageIcon className="h-12 w-12 text-neutral-600 mb-4" />
+                    <p className="text-neutral-400 text-sm">
+                      No event banners available yet.
+                    </p>
+                    <p className="text-neutral-500 text-xs mt-2">
+                      Event banners will appear here once you create self-driven
+                      events.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Faculty Coordinator Card (spans 2 columns, 1 row) */}
+            <Card className="border-neutral-700 col-span-2 row-span-1">
+              <CardHeader>
+                <CardTitle className="text-2xl">Faculty Coordinator</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {profileData?.faculty_coordinator ? (
+                  <div>
+                    <p className="font-semibold text-4xl">
+                      {profileData.faculty_coordinator}
+                    </p>
+                    {profileData.faculty_coordinator_designation && (
+                      <p className="text-neutral-400 text-lg">
+                        {profileData.faculty_coordinator_designation}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-neutral-400 text-sm">
+                    No faculty coordinator information available.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Student Council Tab */}
         <TabsContent value="student-council">
           <Card className="border-neutral-700">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-2xl">Student Council Members</CardTitle>
+              <CardTitle className="text-2xl">
+                Student Council Members
+              </CardTitle>
               <GradientButton onClick={() => openStudentModal()}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Member
@@ -679,14 +710,19 @@ export default function ProfilePage() {
                 <TableBody>
                   {studentCouncil.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-neutral-400">
+                      <TableCell
+                        colSpan={9}
+                        className="text-center text-neutral-400"
+                      >
                         No student council members added yet.
                       </TableCell>
                     </TableRow>
                   ) : (
                     studentCouncil.map((member) => (
                       <TableRow key={member.id}>
-                        <TableCell className="font-medium">{member.role}</TableCell>
+                        <TableCell className="font-medium">
+                          {member.role}
+                        </TableCell>
                         <TableCell>{member.name}</TableCell>
                         <TableCell>{member.email}</TableCell>
                         <TableCell>{member.discipline || "-"}</TableCell>
@@ -727,7 +763,9 @@ export default function ProfilePage() {
         <TabsContent value="faculty-council">
           <Card className="border-neutral-700">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-2xl">Faculty Council Members</CardTitle>
+              <CardTitle className="text-2xl">
+                Faculty Council Members
+              </CardTitle>
               <GradientButton onClick={() => openFacultyModal()}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Member
@@ -751,14 +789,19 @@ export default function ProfilePage() {
                 <TableBody>
                   {facultyCouncil.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-neutral-400">
+                      <TableCell
+                        colSpan={9}
+                        className="text-center text-neutral-400"
+                      >
                         No faculty council members added yet.
                       </TableCell>
                     </TableRow>
                   ) : (
                     facultyCouncil.map((member) => (
                       <TableRow key={member.id}>
-                        <TableCell className="font-medium">{member.role}</TableCell>
+                        <TableCell className="font-medium">
+                          {member.role}
+                        </TableCell>
                         <TableCell>{member.name}</TableCell>
                         <TableCell>{member.phone}</TableCell>
                         <TableCell>{member.email}</TableCell>
@@ -963,7 +1006,10 @@ export default function ProfilePage() {
                   id="student-discipline"
                   value={studentForm.discipline}
                   onChange={(e) =>
-                    setStudentForm({ ...studentForm, discipline: e.target.value })
+                    setStudentForm({
+                      ...studentForm,
+                      discipline: e.target.value,
+                    })
                   }
                   className="border-neutral-600"
                   placeholder="e.g., Engineering"
@@ -1143,7 +1189,10 @@ export default function ProfilePage() {
                   id="faculty-department"
                   value={facultyForm.department}
                   onChange={(e) =>
-                    setFacultyForm({ ...facultyForm, department: e.target.value })
+                    setFacultyForm({
+                      ...facultyForm,
+                      department: e.target.value,
+                    })
                   }
                   className="border-neutral-600"
                   placeholder="e.g., Computer Science"
@@ -1157,7 +1206,10 @@ export default function ProfilePage() {
                   id="faculty-designation"
                   value={facultyForm.designation}
                   onChange={(e) =>
-                    setFacultyForm({ ...facultyForm, designation: e.target.value })
+                    setFacultyForm({
+                      ...facultyForm,
+                      designation: e.target.value,
+                    })
                   }
                   className="border-neutral-600"
                   placeholder="e.g., Professor, Associate Professor"
@@ -1192,7 +1244,10 @@ export default function ProfilePage() {
                   type="number"
                   value={facultyForm.experience}
                   onChange={(e) =>
-                    setFacultyForm({ ...facultyForm, experience: e.target.value })
+                    setFacultyForm({
+                      ...facultyForm,
+                      experience: e.target.value,
+                    })
                   }
                   className="border-neutral-600"
                   placeholder="Years of experience"

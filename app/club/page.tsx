@@ -87,6 +87,11 @@ interface CalendarEvent {
   reviewer_comment?: string;
   review_request?: string;
   event?: Event;
+  after_event_report?: {
+    report_submitted: boolean;
+    media_uploaded: boolean;
+    social_media_promoted: boolean;
+  };
 }
 
 export default function EventsPage() {
@@ -179,12 +184,26 @@ export default function EventsPage() {
         .eq("club_id", sessionUserId)
         .order("added_at", { ascending: false });
       if (calendarErr) console.error("Calendar error:", calendarErr.message);
-      setCalendarEvents(
-        (calendarData || []).map((item: any) => ({
-          ...item,
-          event: item.events,
-        }))
+
+      // Fetch after_event_reports for each calendar event
+      const calendarEventsWithReports = await Promise.all(
+        (calendarData || []).map(async (item: any) => {
+          const { data: reportData } = await supabase
+            .from("after_event_reports")
+            .select("report_submitted, media_uploaded, social_media_promoted")
+            .eq("event_id", item.event_id)
+            .eq("submitted_by", sessionUserId)
+            .maybeSingle();
+
+          return {
+            ...item,
+            event: item.events,
+            after_event_report: reportData || null,
+          };
+        })
       );
+
+      setCalendarEvents(calendarEventsWithReports);
     } catch (error) {
       console.error("Error fetching events:", error);
       setIicEvents([]);
@@ -267,6 +286,44 @@ export default function EventsPage() {
   const handleViewIicEvent = (event: Event) => {
     setSelectedIicEvent(event);
     setIicEventViewOpen(true);
+  };
+
+  // Helper function to determine report status based on after_event_reports
+  const getReportStatus = (after_event_report: CalendarEvent['after_event_report']) => {
+    if (!after_event_report) {
+      return {
+        label: "Not Started",
+        className: "bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700"
+      };
+    }
+
+    const { report_submitted, media_uploaded, social_media_promoted } = after_event_report;
+
+    if (report_submitted && media_uploaded && social_media_promoted) {
+      return {
+        label: "Completed",
+        className: "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
+      };
+    }
+
+    if (report_submitted && media_uploaded) {
+      return {
+        label: "Media Uploaded",
+        className: "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+      };
+    }
+
+    if (report_submitted) {
+      return {
+        label: "Report Submitted",
+        className: "bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800"
+      };
+    }
+
+    return {
+      label: "Not Started",
+      className: "bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700"
+    };
   };
 
   const handleAddToCalendar = async (eventId: string) => {
@@ -1319,16 +1376,17 @@ export default function EventsPage() {
                               </Button>
                             </TableCell>
                             <TableCell className="text-center">
-                              <Badge
-                                variant="outline"
-                                className={`${
-                                  calEvent.report_status === "Submitted"
-                                    ? "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
-                                    : "bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300"
-                                }`}
-                              >
-                                {calEvent.report_status || "Not Submitted"}
-                              </Badge>
+                              {(() => {
+                                const status = getReportStatus(calEvent.after_event_report);
+                                return (
+                                  <Badge
+                                    variant="outline"
+                                    className={status.className}
+                                  >
+                                    {status.label}
+                                  </Badge>
+                                );
+                              })()}
                             </TableCell>
                             <TableCell>
                               <p className="text-sm">
