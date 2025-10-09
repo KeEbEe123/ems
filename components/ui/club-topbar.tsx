@@ -46,14 +46,14 @@ export const ClubTopBar = ({
           <Image
             src="/logos/iic.png"
             alt="IIC Logo"
-            width={120}
-            height={120}
+            width={100}
+            height={100}
             className="object-contain"
           />
         </div>
         {/* Center - Session user name */}
         <div className="flex-1 text-center pointer-events-none">
-          <span className="font-medium text-white dark:text-neutral-200 truncate inline-block max-w-[50vw]">
+          <span className="font-medium text-white dark:text-neutral-200 truncate inline-block max-w-[50vw] text-4xl">
             {session?.user?.name ?? "User"}
           </span>
         </div>

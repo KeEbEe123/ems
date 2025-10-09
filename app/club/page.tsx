@@ -1047,7 +1047,11 @@ export default function EventsPage() {
         </DialogContent>
       </Dialog>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full mt-10"
+      >
         <TabsList className="grid w-full grid-cols-3 mb-6 bg-transparent p-0">
           <TabsTrigger
             value="iic"
@@ -1065,7 +1069,7 @@ export default function EventsPage() {
             value="calendar"
             className="bg-transparent shadow-none rounded-none border-b-2 border-transparent px-0 py-6 text-neutral-600 hover:text-neutral-800 data-[state=active]:border-b-blue-600 dark:data-[state=active]:border-b-blue-600 data-[state=active]:text-black dark:text-neutral-300 dark:hover:text-neutral-100 dark:data-[state=active]:text-white"
           >
-            My Event Calendar
+            My Calendar Activities
           </TabsTrigger>
         </TabsList>
 
@@ -1121,7 +1125,7 @@ export default function EventsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mx-20">
             {isLoading ? (
               <div className="col-span-full flex justify-center items-center py-8">
                 <div className="text-neutral-400">Loading events...</div>

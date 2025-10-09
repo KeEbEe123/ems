@@ -22,14 +22,6 @@ export default function Footer() {
           {/* Left: Logos */}
           <div className="flex flex-col items-start gap-6 shrink-0">
             <Image
-              src="/logos/cie.png"
-              alt="CIE"
-              width={128}
-              height={64}
-              priority
-              className="h-auto w-24 md:w-28"
-            />
-            <Image
               src="/logos/mlrit.svg"
               alt="MLRIT"
               width={160}
@@ -90,7 +82,7 @@ export default function Footer() {
               <ul className="space-y-3 text-xl">
                 <li>
                   <a
-                    href="https://instagram.com"
+                    href="https://www.instagram.com/mlritofficial?igsh=MXJnMnJlZGl4dHM3aw=="
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-3 hover:opacity-90 transition-opacity"
@@ -101,7 +93,7 @@ export default function Footer() {
                 </li>
                 <li>
                   <a
-                    href="https://twitter.com"
+                    href="https://x.com/mlritin?s=09"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-3 hover:opacity-90 transition-opacity"
@@ -112,7 +104,7 @@ export default function Footer() {
                 </li>
                 <li>
                   <a
-                    href="https://linkedin.com"
+                    href="https://www.linkedin.com/school/mlr-institute-of-technology/"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-3 hover:opacity-90 transition-opacity"
@@ -123,7 +115,7 @@ export default function Footer() {
                 </li>
                 <li>
                   <a
-                    href="https://youtube.com"
+                    href="https://www.youtube.com/@MLRInstituteofTechnology"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-3 hover:opacity-90 transition-opacity"
