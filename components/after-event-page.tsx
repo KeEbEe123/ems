@@ -10,6 +10,7 @@ import ReportStepCard from "@/components/after-event/ReportStepCard";
 import UploadsStepCard from "@/components/after-event/UploadsStepCard";
 import SocialStepCard from "@/components/after-event/SocialStepCard";
 import CompletionCard from "@/components/after-event/CompletionCard";
+import { ClubTopBar } from "./ui/club-topbar";
 
 interface FormData {
   programType: string;
@@ -242,7 +243,7 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
         setValidationErrors((prev) => ({ ...prev, ...errors }));
         return;
       }
-      
+
       // Add or replace image at specific index
       setFileUploads((prev) => {
         const newImages = [...prev.eventImages];
@@ -535,11 +536,8 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
   return (
     <div className="bg-white dark:bg-neutral-950">
       {/* Sticky Header Section */}
-      <div className="sticky top-5 z-40 bg-white dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 shadow-sm">
-        <div className="p-6 pb-4">
-          <h1 className="text-lg font-medium mb-4">
-            Club - Event Dashboard - After Event Page
-          </h1>
+      <div className="sticky top-18 z-40 bg-white dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800">
+        <div className="px-2 pt-4">
           <StepperHeader
             steps={steps}
             isStepCompleted={isStepCompleted}

@@ -21,13 +21,18 @@ export default function StepperHeader({
   ).length;
 
   // Calculate progress as %
-  const denominator = Math.max(1, steps.length - 1);
-  const progressValue = Math.min(100, (completedCount / denominator) * 100);
+  // Formula: Each step represents (100 / steps.length) percentage
+  // When on step 0 with nothing completed, show 33.33%
+  // When on step 1 (step 0 completed), show 66.66%
+  // When all completed, show 100%
+  const activeStepIndex = activeStep ? activeStep.id : 0;
+  const progressPerStep = 100 / steps.length;
+  const progressValue = Math.min(100, (activeStepIndex + 1) * progressPerStep);
 
   return (
     <div className="mb-8">
       {/* Active Step Title */}
-      <div className="mb-2 text-center">
+      <div className="mb-2 text-center -ml-10">
         <p className="text-sm font-semibold">
           {activeStep ? activeStep.title : steps[0].title}
         </p>

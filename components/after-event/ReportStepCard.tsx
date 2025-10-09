@@ -206,14 +206,17 @@ export default function ReportStepCard({
             <Input
               id="student-participants"
               type="number"
-              min={50}
-              value={formData.studentParticipants || ""}
-              onChange={(e) =>
-                updateFormData(
-                  "studentParticipants",
-                  parseInt(e.target.value) || 0
-                )
-              }
+              min={0}
+              value={formData.studentParticipants === 0 ? "0" : formData.studentParticipants || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "" || parseInt(value) >= 0) {
+                  updateFormData(
+                    "studentParticipants",
+                    value === "" ? 0 : parseInt(value)
+                  );
+                }
+              }}
               placeholder="75"
               className={`border-neutral-700 mt-2 ${
                 validationErrors.studentParticipants ? "border-red-500" : ""
@@ -233,13 +236,17 @@ export default function ReportStepCard({
             <Input
               id="faculty-participants"
               type="number"
-              value={formData.facultyParticipants || ""}
-              onChange={(e) =>
-                updateFormData(
-                  "facultyParticipants",
-                  parseInt(e.target.value) || 0
-                )
-              }
+              min={0}
+              value={formData.facultyParticipants === 0 ? "0" : formData.facultyParticipants || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "" || parseInt(value) >= 0) {
+                  updateFormData(
+                    "facultyParticipants",
+                    value === "" ? 0 : parseInt(value)
+                  );
+                }
+              }}
               placeholder="10"
               className={`border-neutral-700 mt-2 ${
                 validationErrors.facultyParticipants ? "border-red-500" : ""
@@ -262,13 +269,17 @@ export default function ReportStepCard({
             <Input
               id="external-participants"
               type="number"
-              value={formData.externalParticipants || ""}
-              onChange={(e) =>
-                updateFormData(
-                  "externalParticipants",
-                  parseInt(e.target.value) || 0
-                )
-              }
+              min={0}
+              value={formData.externalParticipants === 0 ? "0" : formData.externalParticipants || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "" || parseInt(value) >= 0) {
+                  updateFormData(
+                    "externalParticipants",
+                    value === "" ? 0 : parseInt(value)
+                  );
+                }
+              }}
               placeholder="5"
               className={`border-neutral-700 mt-2 ${
                 validationErrors.externalParticipants ? "border-red-500" : ""

@@ -1,15 +1,16 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import {
-  IconMenu2,
+  PermanentSidebar,
+  PermanentSidebarLink,
+} from "@/components/ui/permanent-sidebar";
+import {
   IconChartBar,
   IconUsers,
   IconClipboard,
   IconCalendar,
 } from "@tabler/icons-react";
-import { motion } from "motion/react";
 import { EventInfoPage } from "@/components/event-info-page";
 import { AfterEventPage } from "@/components/after-event-page";
 import { ParticipantsPage } from "@/components/participants-page";
@@ -21,7 +22,6 @@ import { Home, LogOut, ArrowLeft } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/lib/supabase/browserClient";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import Router from "next/router";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -47,7 +47,6 @@ export default function EventDashboard() {
   const params = useParams();
   const eventId = params.id as string;
   const [currentPage, setCurrentPage] = useState("event-info");
-  const [open, setOpen] = useState(false);
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { data: session } = useSession();
@@ -105,16 +104,8 @@ export default function EventDashboard() {
 
   const links = [
     {
-      label: "Menu",
-      href: "#",
-      icon: (
-        <IconMenu2 className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
-      ),
-      id: "menu",
-    },
-    {
       label: "Analytics",
-      href: "#",
+      href: "#analytics",
       icon: (
         <IconChartBar className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
       ),
@@ -122,7 +113,7 @@ export default function EventDashboard() {
     },
     {
       label: "Participants",
-      href: "#",
+      href: "#participants",
       icon: (
         <IconUsers className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
       ),
@@ -130,7 +121,7 @@ export default function EventDashboard() {
     },
     {
       label: "Event Info",
-      href: "#",
+      href: "#event-info",
       icon: (
         <IconClipboard className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
       ),
@@ -138,41 +129,21 @@ export default function EventDashboard() {
     },
     {
       label: "After Event",
-      href: "#",
+      href: "#after-event",
       icon: (
         <IconCalendar className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
       ),
       id: "after-event",
     },
-    {
-      label: "Logout",
-      href: "#",
-      icon: (
-        <LogOut className="h-5 w-5 shrink-0 dark:text-red-400 text-red-400" />
-      ),
-      id: "logout",
-    },
-    {
-      label: "Home",
-      href: "#",
-      icon: (
-        <Home className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
-      ),
-      id: "home",
-    },
   ];
 
   const handleLinkClick = (id: string) => {
-    if (id !== "menu") {
-      setCurrentPage(id);
-      if (id !== "home" && id !== "logout") {
-        // Push hash so this page can be deep-linked and navigated via browser controls
-        window.location.hash = id;
-      }
-    }
-    if (id === "home") {
-      window.location.href = "/club";
-    }
+    setCurrentPage(id);
+    window.location.hash = id;
+  };
+
+  const handleHomeClick = () => {
+    window.location.href = "/club";
   };
 
   const renderCurrentPage = () => {
@@ -209,82 +180,81 @@ export default function EventDashboard() {
   return (
     <div className="flex min-h-screen w-full bg-neutral-900">
       <div className="sticky top-0 h-screen">
-        <Sidebar open={open} setOpen={setOpen}>
-          <SidebarBody className="justify-between gap-10 dark:bg-neutral-900 dark:border-r dark:border-neutral-800 bg-white h-full">
-            <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
-              <Logo />
-              <div className="mt-8 flex flex-col gap-2">
-                {event?.hosted === "iic" && currentPage === "after-event" ? (
-                  <div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Back to Club"
-                      onClick={() => (window.location.href = "/club")}
-                      className="h-9 w-9 pl-2"
+        <PermanentSidebar className="justify-between gap-10 dark:bg-neutral-900 dark:border-r dark:border-neutral-800 bg-white h-full">
+          <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+            <Logo />
+            <div className="mt-8 flex flex-col gap-2">
+              {event?.hosted === "iic" && currentPage === "after-event" ? (
+                <div>
+                  <Button
+                    variant="ghost"
+                    size="default"
+                    aria-label="Back to Club"
+                    onClick={() => (window.location.href = "/club")}
+                    className="h-9 w-9 ml-10 hover:bg-transparent hover:cursor-pointer"
+                  >
+                    <ArrowLeft className="h-5 w-5 dark:text-neutral-200 text-neutral-700" />{" "}
+                    Back to Home
+                  </Button>
+                </div>
+              ) : (
+                links.map((link) => (
+                  <React.Fragment key={link.id}>
+                    <div
+                      onClick={() => handleLinkClick(link.id)}
+                      className="cursor-pointer"
                     >
-                      <ArrowLeft className="h-5 w-5 dark:text-neutral-200 text-neutral-700" />
-                    </Button>
-                  </div>
-                ) : (
-                  links.map((link) => (
-                    <React.Fragment key={link.id}>
-                      <div
-                        onClick={() => handleLinkClick(link.id)}
-                        className="cursor-pointer"
-                      >
-                        <SidebarLink link={link} />
-                      </div>
-                      {link.id === "after-event" && (
-                        <Separator className="my-4" />
-                      )}
-                    </React.Fragment>
-                  ))
-                )}
-              </div>
+                      <PermanentSidebarLink link={link} />
+                    </div>
+                    {link.id === "after-event" && (
+                      <Separator className="my-4" />
+                    )}
+                  </React.Fragment>
+                ))
+              )}
             </div>
-            <div className="flex flex-col items-start align-middle gap-2">
-              <div className="-ml-1">
-                <ThemeToggle />
-              </div>
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage
-                    src={session?.user?.image ?? ""}
-                    alt={session?.user?.name ?? "User"}
-                  />
-                  <AvatarFallback>
-                    {(session?.user?.name?.[0] ?? "U").toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                {/* Name only appears when sidebar is expanded */}
-                <motion.span
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={
-                    open
-                      ? { opacity: 1, width: "auto" }
-                      : { opacity: 0, width: 0 }
-                  }
-                  transition={{ duration: 0.2 }}
-                  className="font-medium whitespace-pre dark:text-white text-neutral-800 overflow-hidden"
-                >
-                  {session?.user?.name ?? "User"}
-                </motion.span>
-              </div>
+          </div>
+          <div className="flex flex-col items-start align-middle gap-2">
+            <Separator className="my-2" />
+            <div
+              onClick={handleHomeClick}
+              className="flex items-center justify-start gap-2 group/sidebar py-2 cursor-pointer"
+            >
+              <Home className="h-5 w-5 shrink-0 dark:text-neutral-200 text-neutral-600" />
+              <span className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block">
+                Home
+              </span>
             </div>
-          </SidebarBody>
-        </Sidebar>
+            <div className="-ml-1">
+              <ThemeToggle />
+            </div>
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                <AvatarImage
+                  src={session?.user?.image ?? ""}
+                  alt={session?.user?.name ?? "User"}
+                />
+                <AvatarFallback>
+                  {(session?.user?.name?.[0] ?? "U").toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-medium whitespace-pre dark:text-white text-neutral-800">
+                {session?.user?.name ?? "User"}
+              </span>
+            </div>
+          </div>
+        </PermanentSidebar>
       </div>
       {/* Main content area with top bar and conditional IIC overlay (except on After Event page) */}
       <div className="relative flex-1 bg-neutral-900">
-        <ClubTopBar sidebarOpen={open} />
+        <ClubTopBar />
         {/** Underlying content gets blurred when overlay is active */}
         <div
           className={`${
             event?.hosted === "iic" && currentPage !== "after-event"
               ? "blur-lg"
               : ""
-          } pt-20`}
+          } pt-[60px]`}
         >
           {renderCurrentPage()}
         </div>
