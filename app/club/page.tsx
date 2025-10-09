@@ -289,40 +289,48 @@ export default function EventsPage() {
   };
 
   // Helper function to determine report status based on after_event_reports
-  const getReportStatus = (after_event_report: CalendarEvent['after_event_report']) => {
+  const getReportStatus = (
+    after_event_report: CalendarEvent["after_event_report"]
+  ) => {
     if (!after_event_report) {
       return {
         label: "Not Started",
-        className: "bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700"
+        className:
+          "bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700",
       };
     }
 
-    const { report_submitted, media_uploaded, social_media_promoted } = after_event_report;
+    const { report_submitted, media_uploaded, social_media_promoted } =
+      after_event_report;
 
     if (report_submitted && media_uploaded && social_media_promoted) {
       return {
         label: "Completed",
-        className: "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
+        className:
+          "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
       };
     }
 
     if (report_submitted && media_uploaded) {
       return {
         label: "Media Uploaded",
-        className: "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+        className:
+          "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
       };
     }
 
     if (report_submitted) {
       return {
         label: "Report Submitted",
-        className: "bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800"
+        className:
+          "bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800",
       };
     }
 
     return {
       label: "Not Started",
-      className: "bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700"
+      className:
+        "bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700",
     };
   };
 
@@ -506,9 +514,9 @@ export default function EventsPage() {
       className="group relative overflow-hidden border border-white/20 bg-neutral-900/50 hover:bg-neutral-800/50 transition-colors cursor-pointer"
       onClick={() => setIsDialogOpen(true)}
     >
-      <div className="relative h-40 bg-neutral-900 flex items-center justify-center">
-        <div className="w-16 h-16 rounded-full bg-neutral-700 flex items-center justify-center">
-          <Plus className="w-8 h-8 text-neutral-300" />
+      <div className="relative h-40 dark:bg-neutral-900 bg-white flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full dark:bg-neutral-700 bg-neutral-300 flex items-center justify-center">
+          <Plus className="w-8 h-8 dark:text-neutral-300 text-nuetral-700" />
         </div>
       </div>
       <div className="flex items-center justify-center bg-[#D9D9D9] px-5 py-4">
@@ -1377,7 +1385,9 @@ export default function EventsPage() {
                             </TableCell>
                             <TableCell className="text-center">
                               {(() => {
-                                const status = getReportStatus(calEvent.after_event_report);
+                                const status = getReportStatus(
+                                  calEvent.after_event_report
+                                );
                                 return (
                                   <Badge
                                     variant="outline"
