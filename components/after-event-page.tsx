@@ -35,8 +35,9 @@ interface FormData {
 
 interface FileUploads {
   eventImages: File[];
-  eventVideo: File | null;
+  videoUrl: string;
   eventReport: File | null;
+  permissionLetter: File | null;
 }
 
 interface ValidationErrors {
@@ -83,14 +84,15 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
   // File uploads state
   const [fileUploads, setFileUploads] = useState<FileUploads>({
     eventImages: [],
-    eventVideo: null,
+    videoUrl: "",
     eventReport: null,
+    permissionLetter: null,
   });
 
   // File input refs
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
   const reportInputRef = useRef<HTMLInputElement>(null);
+  const permissionLetterInputRef = useRef<HTMLInputElement>(null);
 
   // Load existing report to restore progress/state
   useEffect(() => {
@@ -216,6 +218,9 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
     if (!fileUploads.eventReport) {
       errors.eventReport = "Event report is required";
     }
+    if (!fileUploads.permissionLetter) {
+      errors.permissionLetter = "Permission letter is required";
+    }
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -223,7 +228,7 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
 
   // File upload handlers
   const handleFileUpload = (
-    type: "images" | "video" | "report",
+    type: "images" | "report" | "permissionLetter",
     files: FileList | null,
     targetIndex?: number
   ) => {
@@ -260,15 +265,6 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
         }
         return { ...prev, eventImages: newImages };
       });
-    } else if (type === "video") {
-      const file = files[0];
-      if (file.size > 200 * 1024 * 1024) {
-        errors.eventVideo = "Video exceeds 200MB limit";
-      } else if (!file.type.startsWith("video/")) {
-        errors.eventVideo = "Invalid video file format";
-      } else {
-        setFileUploads((prev) => ({ ...prev, eventVideo: file }));
-      }
     } else if (type === "report") {
       const file = files[0];
       if (file.size > 200 * 1024) {
@@ -284,9 +280,29 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
       } else {
         setFileUploads((prev) => ({ ...prev, eventReport: file }));
       }
+    } else if (type === "permissionLetter") {
+      const file = files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        errors.permissionLetter = "Permission letter exceeds 5MB limit";
+      } else if (
+        !file.type.startsWith("image/") &&
+        file.type !== "application/pdf"
+      ) {
+        errors.permissionLetter = "Permission letter must be an image or PDF";
+      } else {
+        setFileUploads((prev) => ({ ...prev, permissionLetter: file }));
+      }
     }
 
     setValidationErrors((prev) => ({ ...prev, ...errors }));
+  };
+
+  const handleVideoUrlChange = (url: string) => {
+    setFileUploads((prev) => ({ ...prev, videoUrl: url }));
+    // Clear validation error when user starts typing
+    if (validationErrors.videoUrl) {
+      setValidationErrors((prev) => ({ ...prev, videoUrl: "" }));
+    }
   };
 
   // Sanitize filename for storage
@@ -306,29 +322,15 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
     path: string
   ): Promise<string> => {
     const sanitizedPath = sanitizeFilename(path);
-    console.debug("[upload] start", {
-      bucket,
-      path: sanitizedPath,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-    });
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(sanitizedPath, file, {
         cacheControl: "3600",
         upsert: false,
-        contentType: (file as any).type || "application/octet-stream",
+        contentType: file.type || "application/octet-stream",
       });
-    if (error) {
-      console.error("[upload] supabase error", error);
-      throw error;
-    }
+    if (error) throw error;
     const { data: pub } = supabase.storage.from(bucket).getPublicUrl(data.path);
-    console.debug("[upload] success", {
-      path: data.path,
-      publicUrl: pub.publicUrl,
-    });
     if (!pub.publicUrl) throw new Error("Failed to get public URL");
     return pub.publicUrl;
   };
@@ -433,18 +435,6 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
             imageUrls.push(url);
           }
 
-          // Upload video if exists
-          let videoUrl: string | null = null;
-          if (fileUploads.eventVideo) {
-            const ext = fileUploads.eventVideo.name.split(".").pop() || "mp4";
-            const path = `${eventId}/video_${Date.now()}.${ext}`;
-            videoUrl = await uploadFile(
-              fileUploads.eventVideo,
-              "event-videos",
-              path
-            );
-          }
-
           // Upload report (required)
           let reportUrl: string | null = null;
           if (fileUploads.eventReport) {
@@ -457,10 +447,22 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
             );
           }
 
+          // Upload permission letter (required)
+          let permissionLetterUrl: string | null = null;
+          if (fileUploads.permissionLetter) {
+            const ext = fileUploads.permissionLetter.name.split(".").pop() || "pdf";
+            const path = `${eventId}/permission_letter_${Date.now()}.${ext}`;
+            permissionLetterUrl = await uploadFile(
+              fileUploads.permissionLetter,
+              "permission-letters",
+              path
+            );
+          }
+
           // Ensure required uploads exist
-          if (imageUrls.length === 0 || !reportUrl) {
+          if (imageUrls.length === 0 || !reportUrl || !permissionLetterUrl) {
             toast.error(
-              "Upload failed. Please ensure at least one image and a report are uploaded."
+              "Upload failed. Please ensure at least one image, a report, and a permission letter are uploaded."
             );
             setIsSubmitting(false);
             return;
@@ -468,8 +470,9 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
 
           await upsertReport({
             event_images: imageUrls,
-            event_video: videoUrl,
+            video_url: fileUploads.videoUrl || null,
             event_report: reportUrl,
+            permission_letter: permissionLetterUrl,
             media_uploaded: true,
           });
 
@@ -516,16 +519,16 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
     }
   };
 
-  const removeFile = (type: "images" | "video" | "report", index?: number) => {
+  const removeFile = (type: "images" | "report" | "permissionLetter", index?: number) => {
     if (type === "images" && typeof index === "number") {
       setFileUploads((prev) => ({
         ...prev,
         eventImages: prev.eventImages.filter((_, i) => i !== index),
       }));
-    } else if (type === "video") {
-      setFileUploads((prev) => ({ ...prev, eventVideo: null }));
     } else if (type === "report") {
       setFileUploads((prev) => ({ ...prev, eventReport: null }));
+    } else if (type === "permissionLetter") {
+      setFileUploads((prev) => ({ ...prev, permissionLetter: null }));
     }
   };
 
@@ -564,9 +567,10 @@ export function AfterEventPage({ eventId }: AfterEventPageProps) {
           isSubmitting={isSubmitting}
           fileUploads={fileUploads}
           imageInputRef={imageInputRef}
-          videoInputRef={videoInputRef}
           reportInputRef={reportInputRef}
+          permissionLetterInputRef={permissionLetterInputRef}
           handleFileUpload={handleFileUpload}
+          handleVideoUrlChange={handleVideoUrlChange}
           removeFile={removeFile}
           validationErrors={validationErrors}
           completeStep={completeStep}

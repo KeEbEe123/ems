@@ -23,8 +23,9 @@ export interface FormData {
 
 export interface FileUploads {
   eventImages: File[];
-  eventVideo: File | null;
+  videoUrl: string;
   eventReport: File | null;
+  permissionLetter: File | null;
 }
 
 export type ValidationErrors = Record<string, string>;

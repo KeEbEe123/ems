@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Upload, AlertCircle, X, Image, Video, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Upload, AlertCircle, X, Image, Video, FileText, Link } from "lucide-react";
 import type { FileUploads, ValidationErrors } from "./types";
 import React, { RefObject } from "react";
 
@@ -20,14 +21,15 @@ interface UploadsStepCardProps {
   isSubmitting: boolean;
   fileUploads: FileUploads;
   imageInputRef: RefObject<HTMLInputElement | null>;
-  videoInputRef: RefObject<HTMLInputElement | null>;
   reportInputRef: RefObject<HTMLInputElement | null>;
+  permissionLetterInputRef: RefObject<HTMLInputElement | null>;
   handleFileUpload: (
-    type: "images" | "video" | "report",
+    type: "images" | "report" | "permissionLetter",
     files: FileList | null,
     targetIndex?: number
   ) => void;
-  removeFile: (type: "images" | "video" | "report", index?: number) => void;
+  handleVideoUrlChange: (url: string) => void;
+  removeFile: (type: "images" | "report" | "permissionLetter", index?: number) => void;
   validationErrors: ValidationErrors;
   completeStep: (stepId: number) => void;
 }
@@ -109,9 +111,10 @@ export default function UploadsStepCard({
   isSubmitting,
   fileUploads,
   imageInputRef,
-  videoInputRef,
   reportInputRef,
+  permissionLetterInputRef,
   handleFileUpload,
+  handleVideoUrlChange,
   removeFile,
   validationErrors,
   completeStep,
@@ -134,16 +137,18 @@ export default function UploadsStepCard({
         <CardDescription className="text-gray-400">
           Upload event media and documentation
         </CardDescription>
+        <a
+          href="https://www.dropbox.com/scl/fi/fl3nngu4kxaj7jbluw8cc/CIE-Event-report-format-September-2025.docx?rlkey=i1m8irvk1nxf2t3la7te35sow&st=6fi68mec&raw=1"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors mt-2"
+        >
+          <Link className="w-4 h-4" />
+          Download Report Format
+        </a>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Hidden file inputs */}
-        <input
-          ref={videoInputRef}
-          type="file"
-          accept="video/*"
-          onChange={(e) => handleFileUpload("video", e.target.files)}
-          className="hidden"
-        />
         <input
           ref={imageInputRef}
           type="file"
@@ -166,60 +171,39 @@ export default function UploadsStepCard({
           onChange={(e) => handleFileUpload("report", e.target.files)}
           className="hidden"
         />
+        <input
+          ref={permissionLetterInputRef}
+          type="file"
+          accept="image/*,.pdf"
+          onChange={(e) => handleFileUpload("permissionLetter", e.target.files)}
+          className="hidden"
+        />
 
-        {/* Horizontal layout with three sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Video Upload Section */}
+        {/* Horizontal layout with four sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Video URL Section */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Video className="w-4 h-4" />
-              <Label className="text-sm font-medium">Video</Label>
-              <span className="text-xs text-gray-400">(Max 200MB)</span>
+              <Label className="text-sm font-medium">Video URL</Label>
             </div>
-            <div
-              className={`border-2 border-dashed rounded-lg p-4 text-center h-40 flex flex-col items-center justify-center ${
-                validationErrors.eventVideo
-                  ? "border-red-500"
-                  : "border-neutral-700"
-              } hover:border-neutral-600 transition-colors`}
-            >
-              {fileUploads.eventVideo ? (
-                <div className="text-center">
-                  <Video className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                  <p className="text-xs text-center break-words px-2">
-                    {fileUploads.eventVideo.name}
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile("video")}
-                    className="mt-2 text-red-400 hover:text-red-300"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="cursor-pointer" onClick={() => videoInputRef.current?.click()}>
-                  <Video className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-400 text-xs mb-2">
-                    Upload video
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs border-neutral-700 hover:bg-neutral-800 bg-transparent"
-                  >
-                    Browse
-                  </Button>
-                </div>
+            <div className="space-y-2">
+              <Input
+                type="url"
+                placeholder="https://youtube.com/..."
+                value={fileUploads.videoUrl}
+                onChange={(e) => handleVideoUrlChange(e.target.value)}
+                className={`bg-transparent border-neutral-700 ${
+                  validationErrors.videoUrl ? "border-red-500" : ""
+                }`}
+              />
+              {validationErrors.videoUrl && (
+                <p className="text-red-400 text-xs flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {validationErrors.videoUrl}
+                </p>
               )}
             </div>
-            {validationErrors.eventVideo && (
-              <p className="text-red-400 text-xs flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                {validationErrors.eventVideo}
-              </p>
-            )}
           </div>
 
           {/* Images Upload Section */}
@@ -304,16 +288,81 @@ export default function UploadsStepCard({
               </p>
             )}
           </div>
+
+          {/* Permission Letter Upload Section */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              <Label className="text-sm font-medium">Permission Letter *</Label>
+              <span className="text-xs text-gray-400">(Image/PDF)</span>
+            </div>
+            <div
+              className={`border-2 border-dashed rounded-lg p-4 text-center h-40 flex flex-col items-center justify-center ${
+                validationErrors.permissionLetter
+                  ? "border-red-500"
+                  : "border-neutral-700"
+              } hover:border-neutral-600 transition-colors`}
+            >
+              {fileUploads.permissionLetter ? (
+                <div className="text-center">
+                  {fileUploads.permissionLetter.type.startsWith('image/') ? (
+                    <div className="relative w-full h-full">
+                      <img
+                        src={URL.createObjectURL(fileUploads.permissionLetter)}
+                        alt="Permission Letter Preview"
+                        className="w-full h-24 object-contain rounded-md mb-2"
+                      />
+                    </div>
+                  ) : (
+                    <FileText className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                  )}
+                  <p className="text-xs text-center break-words px-2">
+                    {fileUploads.permissionLetter.name}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFile("permissionLetter")}
+                    className="mt-2 text-red-400 hover:text-red-300"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="cursor-pointer" onClick={() => permissionLetterInputRef.current?.click()}>
+                  <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-400 text-xs mb-2">
+                    Upload Image/PDF
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs border-neutral-700 hover:bg-neutral-800 bg-transparent"
+                  >
+                    Browse
+                  </Button>
+                </div>
+              )}
+            </div>
+            {validationErrors.permissionLetter && (
+              <p className="text-red-400 text-xs flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {validationErrors.permissionLetter}
+              </p>
+            )}
+          </div>
         </div>
 
         {!isCompleted && (
-          <Button
-            onClick={() => completeStep(1)}
-            disabled={!isActive || isSubmitting}
-            className="bg-orange-400 hover:bg-orange-500 text-white disabled:opacity-50"
-          >
-            {isSubmitting ? "Uploading..." : "Confirm Upload"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => completeStep(1)}
+              disabled={!isActive || isSubmitting}
+              className="bg-orange-400 hover:bg-orange-500 text-white disabled:opacity-50"
+            >
+              {isSubmitting ? "Uploading..." : "Confirm Upload"}
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>
