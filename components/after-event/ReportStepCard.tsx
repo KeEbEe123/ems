@@ -49,16 +49,29 @@ export default function ReportStepCard({
       }`}
     >
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          Event Report Submission
-          {isCompleted && (
-            <Badge className="bg-green-500 text-white">Completed</Badge>
-          )}
-        </CardTitle>
-        <CardDescription className="text-gray-400">
-          Provide a comprehensive summary of the event
-        </CardDescription>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Event Report Submission
+              {isCompleted && (
+                <Badge className="bg-green-500 text-white">Completed</Badge>
+              )}
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Provide a comprehensive summary of the event
+            </CardDescription>
+          </div>
+          <a
+            href="https://www.dropbox.com/scl/fi/fl3nngu4kxaj7jbluw8cc/CIE-Event-report-format-September-2025.docx?rlkey=i1m8irvk1nxf2t3la7te35sow&e=1&st=27qddcv7&dl=1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
+          >
+            <FileText className="w-4 h-4" />
+            Download Report Format
+          </a>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
