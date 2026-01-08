@@ -12,20 +12,21 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Eye, Plus, Search, Trash2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Eye, Plus, Search, Trash2, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase/browserClient";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -40,6 +41,9 @@ interface EventData {
   description: string;
   semester?: string;
   dateRange?: string;
+  club_id?: string;
+  club_name?: string;
+  has_report?: boolean;
 }
 
 type Club = { id: string; name: string; avatar_url?: string };
@@ -138,7 +142,17 @@ export function IICEventCalendar() {
 
       let query = supabase
         .from("events")
-        .select("id, name, additional_details, quarter, semester, description, date_range")
+        .select(`
+          id, 
+          name, 
+          additional_details, 
+          quarter, 
+          semester, 
+          description, 
+          date_range,
+          club_id,
+          clubs(name)
+        `)
         .eq("hosted", "iic")
         .order("created_at", { ascending: false });
 
@@ -148,6 +162,16 @@ export function IICEventCalendar() {
 
       const { data, error } = await query;
       if (error) throw error;
+
+      // Check for reports for each event
+      const eventIds = (data || []).map((e: any) => e.id);
+      const { data: reports } = await supabase
+        .from("after_event_reports")
+        .select("event_id")
+        .in("event_id", eventIds);
+
+      const reportedEventIds = new Set(reports?.map((r) => r.event_id) || []);
+
       const mapped: EventData[] = (data || []).map((e: any) => ({
         id: e.id,
         title: e.name,
@@ -155,6 +179,9 @@ export function IICEventCalendar() {
         description: e.description || e.additional_details || "",
         semester: e.semester || "",
         dateRange: e.date_range || "",
+        club_id: e.club_id,
+        club_name: e.clubs?.name || "Unassigned",
+        has_report: reportedEventIds.has(e.id),
       }));
       setEvents(mapped);
     } catch (e) {
@@ -259,109 +286,21 @@ export function IICEventCalendar() {
     }
   };
 
-  const AddEventCard = () => (
-    <div
-      className="group relative overflow-hidden border border-white/20 bg-neutral-900/50 hover:bg-neutral-800/50 transition-colors cursor-pointer"
-      onClick={openAddDialog}
-    >
-      <div className="relative h-40 bg-neutral-900/80 flex items-center justify-center">
-        <div className="w-16 h-16 rounded-full bg-neutral-700 flex items-center justify-center">
-          <Plus className="w-8 h-8 text-neutral-300" />
-        </div>
-      </div>
-      <div className="flex items-center justify-center bg-[#D9D9D9] px-5 py-4">
-        <span className="text-xl font-medium tracking-tight text-black">
-          Add New IIC Event
-        </span>
-      </div>
-    </div>
-  );
-
-  const EventCard = ({ event }: { event: EventData }) => {
-    // Compose semester-quarter for date range display if needed
-    const semesterQuarter = event.semester && event.quarter ? `${event.semester}-${event.quarter}` : "";
-    const displayDateRange = event.dateRange
-      ? event.dateRange.replace("-", " - ")
-      : semesterQuarter
-      ? getDateRange(semesterQuarter)
-      : "";
-
-    return (
-      <div className="p-[2px] bg-gradient-to-tl from-[#3A3CBA] via-[#FF1D1D] to-[#FCB045] rounded-lg h-full">
-        <Card className="bg-white dark:bg-neutral-900 border-0 h-full flex flex-col">
-          <CardHeader className="flex-none pb-3">
-            <CardTitle
-              className="text-black dark:text-white text-base leading-snug break-words"
-              title={event.title}
-            >
-              {event.title}
-            </CardTitle>
-
-            {(event.semester || event.quarter) && (
-              <div className="flex gap-2 mt-2 mb-1">
-                {event.semester && (
-                  <Badge
-                    variant="outline"
-                    className="bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
-                  >
-                    {event.semester
-                      .replace("-", " ")
-                      .split(" ")
-                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                      .join(" ")}
-                  </Badge>
-                )}
-                {event.quarter && (
-                  <Badge
-                    variant="outline"
-                    className="bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
-                  >
-                    {event.quarter
-                      .replace("-", " ")
-                      .split(" ")
-                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                      .join(" ")}
-                  </Badge>
-                )}
-              </div>
-            )}
-
-            <CardDescription className="text-neutral-600 dark:text-neutral-400 text-sm min-h-[1.5rem] pt-1">
-              {displayDateRange ? `📅 ${displayDateRange}` : event.description}
-            </CardDescription>
-          </CardHeader>
-
-          <div className="flex-grow" />
-
-          <CardFooter className="flex-none justify-end gap-4 border-t border-neutral-200 dark:border-neutral-700 pt-4 pb-4">
-            <button
-              aria-label="View"
-              className="text-black dark:text-white hover:scale-105 transition-transform"
-              title="View Event Report"
-              onClick={() => handleViewReport(event.id)}
-            >
-              <Eye className="w-5 h-5" />
-            </button>
-            <button
-              aria-label="Delete"
-              className="text-black dark:text-white hover:scale-105 transition-transform"
-              title="Delete Event"
-              onClick={() => handleDeleteEvent(event.id)}
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  };
-
   return (
     <div className="p-6 dark:from-purple-950 dark:via-neutral-900 dark:to-black bg-gradient-to-tl from-pink-300 via-white to-white min-h-screen">
       <div className="mb-6">
-        <h1 className="text-lg font-medium mb-4">
-          Club - Admin Dashboard - IIC Event Calendar
-        </h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-lg font-medium">
+            Club - Admin Dashboard - IIC Event Calendar
+          </h1>
+          <Button
+            onClick={openAddDialog}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add New IIC Event
+          </Button>
+        </div>
 
         <div className="flex gap-4 mb-6">
           <Select value={selectedSemester} onValueChange={setSelectedSemester}>
@@ -433,11 +372,103 @@ export function IICEventCalendar() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <AddEventCard />
-        {filteredEvents.map((event) => (
-          <EventCard key={event.id} event={event} />
-        ))}
+      {/* Table View */}
+      <div className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-neutral-200 dark:border-neutral-800">
+              <TableHead className="text-black dark:text-white font-semibold">Event Title</TableHead>
+              <TableHead className="text-black dark:text-white font-semibold">Semester</TableHead>
+              <TableHead className="text-black dark:text-white font-semibold">Quarter</TableHead>
+              <TableHead className="text-black dark:text-white font-semibold">Assigned Club</TableHead>
+              <TableHead className="text-black dark:text-white font-semibold text-center">Report Submitted</TableHead>
+              <TableHead className="text-black dark:text-white font-semibold text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredEvents.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-neutral-500 dark:text-neutral-400 py-8">
+                  No events found
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredEvents.map((event) => (
+                <TableRow key={event.id} className="border-neutral-200 dark:border-neutral-800">
+                  <TableCell className="font-medium text-black dark:text-white">
+                    {event.title}
+                  </TableCell>
+                  <TableCell>
+                    {event.semester && (
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                      >
+                        {event.semester
+                          .replace("-", " ")
+                          .split(" ")
+                          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(" ")}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {event.quarter && (
+                      <Badge
+                        variant="outline"
+                        className="bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
+                      >
+                        {event.quarter
+                          .replace("-", " ")
+                          .split(" ")
+                          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(" ")}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-black dark:text-white">
+                    {event.club_name}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {event.has_report ? (
+                      <div className="flex items-center justify-center gap-1 text-green-600 dark:text-green-400">
+                        <CheckCircle2 className="w-5 h-5" />
+                        <span className="text-sm">Yes</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+                        <XCircle className="w-5 h-5" />
+                        <span className="text-sm">No</span>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewReport(event.id)}
+                        className="text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                        title="View Event Report"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteEvent(event.id)}
+                        className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
+                        title="Delete Event"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
